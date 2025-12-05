@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('oauth_clients', function (Blueprint $table) {
@@ -19,22 +16,19 @@ return new class extends Migration
             $table->string('provider')->nullable();
             $table->text('redirect_uris');
             $table->text('grant_types');
-            $table->boolean('revoked');
+            $table->boolean('revoked')->default(false);
             $table->timestamps();
+
+            // Index
+            $table->index(['owner_id', 'owner_type']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('oauth_clients');
     }
 
-    /**
-     * Get the migration connection name.
-     */
     public function getConnection(): ?string
     {
         return $this->connection ?? config('passport.connection');

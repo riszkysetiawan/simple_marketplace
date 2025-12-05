@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Product extends Model
 {
-    use HasFactory;
-    protected $table = 'products';
+    use HasFactory, LogsActivity;
+
     protected $fillable = [
         'category_id',
         'name',
@@ -30,18 +31,15 @@ class Product extends Model
         'images' => 'array',
     ];
 
-    protected static function boot()
+    // ✅ Activity Log Configuration
+    public function getActivitylogOptions(): LogOptions
     {
-        parent::boot();
-
-        static::creating(function ($product) {
-            if (empty($product->slug)) {
-                $product->slug = Str::slug($product->name);
-            }
-            if (empty($product->sku)) {
-                $product->sku = 'PRD-' . strtoupper(Str::random(8));
-            }
-        });
+        return LogOptions::defaults()
+            ->logOnly(['name', 'price', 'stock', 'is_active', 'category_id'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => "Product has been {$eventName}")
+            ->useLogName('product');
     }
 
     // Relationships
@@ -53,34 +51,5 @@ class Product extends Model
     public function transactionItems()
     {
         return $this->hasMany(TransactionItem::class);
-    }
-
-    public function transactions()
-    {
-        return $this->belongsToMany(Transaction::class, 'transaction_items')
-            ->withPivot('quantity', 'price', 'subtotal')
-            ->withTimestamps();
-    }
-
-    // Scopes
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    public function scopeInStock($query)
-    {
-        return $query->where('stock', '>', 0);
-    }
-
-    // Accessors
-    public function getFormattedPriceAttribute()
-    {
-        return 'Rp ' . number_format($this->price, 0, ',', '.');
-    }
-
-    public function getIsInStockAttribute()
-    {
-        return $this->stock > 0;
     }
 }

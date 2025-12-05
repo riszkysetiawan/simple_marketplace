@@ -3,8 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TransactionResource\Pages;
-use App\Filament\Resources\TransactionResource\RelationManagers;
 use App\Models\Transaction;
+use App\Exports\TransactionsExport;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,6 +12,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TransactionResource extends Resource
 {
@@ -222,7 +224,60 @@ class TransactionResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+
+                    // ✅ Export Selected to Excel
+                    Tables\Actions\BulkAction::make('exportExcel')
+                        ->label('Export to Excel')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->action(function ($records) {
+                            return Excel::download(
+                                new TransactionsExport(['ids' => $records->pluck('id')->toArray()]),
+                                'transactions_' . now()->format('Y-m-d_His') . '.xlsx'
+                            );
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->color('success'),
+
+                    // ✅ Export Selected to PDF
+                    Tables\Actions\BulkAction::make('exportPdf')
+                        ->label('Export to PDF')
+                        ->icon('heroicon-o-document-text')
+                        ->action(function ($records) {
+                            $transactions = $records;
+                            $pdf = Pdf::loadView('exports.transactions-pdf', compact('transactions'));
+                            return response()->streamDownload(function () use ($pdf) {
+                                echo $pdf->output();
+                            }, 'transactions_' . now()->format('Y-m-d_His') . '.pdf');
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->color('danger'),
                 ]),
+            ])
+            ->headerActions([
+                // ✅ Export ALL to Excel
+                Tables\Actions\Action::make('exportAllExcel')
+                    ->label('Export All to Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(function () {
+                        return Excel::download(
+                            new TransactionsExport(),
+                            'all_transactions_' . now()->format('Y-m-d_His') . '.xlsx'
+                        );
+                    })
+                    ->color('success'),
+
+                // ✅ Export ALL to PDF
+                Tables\Actions\Action::make('exportAllPdf')
+                    ->label('Export All to PDF')
+                    ->icon('heroicon-o-document-text')
+                    ->action(function () {
+                        $transactions = Transaction::with('user', 'items')->get();
+                        $pdf = Pdf::loadView('exports.transactions-pdf', compact('transactions'));
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, 'all_transactions_' . now()->format('Y-m-d_His') . '.pdf');
+                    })
+                    ->color('danger'),
             ]);
     }
 

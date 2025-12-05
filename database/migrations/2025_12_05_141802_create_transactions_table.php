@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->string('order_number')->unique();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->decimal('total_amount', 12, 2);
             $table->enum('status', ['pending', 'paid', 'processing', 'shipped', 'completed', 'cancelled'])->default('pending');
             $table->enum('payment_method', ['cash', 'transfer', 'ewallet', 'credit_card'])->nullable();
@@ -23,8 +23,11 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
 
-            $table->index(['user_id', 'status']);
             $table->index('order_number');
+            $table->index(['user_id', 'status']);
+            $table->index('status');
+            $table->index('payment_method');
+            $table->index('created_at');
         });
     }
 

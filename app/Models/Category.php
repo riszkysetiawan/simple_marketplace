@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Category extends Model
 {
-    use HasFactory;
-    protected $table = 'categories';
+    use HasFactory, LogsActivity;
+
     protected $fillable = [
         'name',
         'slug',
@@ -22,27 +23,20 @@ class Category extends Model
         'is_active' => 'boolean',
     ];
 
-    // Auto-generate slug from name
-    protected static function boot()
+    // ✅ Activity Log Configuration
+    public function getActivitylogOptions(): LogOptions
     {
-        parent::boot();
-
-        static::creating(function ($category) {
-            if (empty($category->slug)) {
-                $category->slug = Str::slug($category->name);
-            }
-        });
+        return LogOptions::defaults()
+            ->logOnly(['name', 'is_active'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => "Category has been {$eventName}")
+            ->useLogName('category');
     }
 
     // Relationships
     public function products()
     {
         return $this->hasMany(Product::class);
-    }
-
-    // Scopes
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
     }
 }

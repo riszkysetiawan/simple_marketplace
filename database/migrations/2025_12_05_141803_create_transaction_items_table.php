@@ -10,14 +10,20 @@ return new class extends Migration
     {
         Schema::create('transaction_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('transaction_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('transaction_id')->constrained('transactions')->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
             $table->integer('quantity');
             $table->decimal('price', 12, 2);
             $table->decimal('subtotal', 12, 2);
             $table->timestamps();
 
+            // Composite index untuk query optimization
             $table->index(['transaction_id', 'product_id']);
+            $table->index('transaction_id');
+            $table->index('product_id');
+
+            // Unique constraint untuk prevent duplicate items
+            $table->unique(['transaction_id', 'product_id'], 'transaction_product_unique');
         });
     }
 

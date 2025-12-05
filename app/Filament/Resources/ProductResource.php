@@ -4,13 +4,15 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
-use App\Models\Category;
+use App\Exports\ProductsExport;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ProductResource extends Resource
 {
@@ -35,9 +37,13 @@ class ProductResource extends Resource
                             ->preload()
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('name')
-                                    ->required(),
+                                    ->required()
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn($state, Forms\Set $set) => $set('slug', Str::slug($state))),
                                 Forms\Components\TextInput::make('slug')
-                                    ->required(),
+                                    ->required()
+                                    ->disabled()
+                                    ->dehydrated(),
                             ]),
 
                         Forms\Components\TextInput::make('name')
@@ -170,12 +176,78 @@ class ProductResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+
+                    // ✅ Export Selected to Excel
+                    Tables\Actions\BulkAction::make('exportExcel')
+                        ->label('Export to Excel')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->action(function ($records) {
+                            return Excel::download(
+                                new ProductsExport(['ids' => $records->pluck('id')->toArray()]),
+                                'products_' . now()->format('Y-m-d_His') . '.xlsx'
+                            );
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->color('success'),
+
+                    // ✅ Export Selected to PDF
+                    Tables\Actions\BulkAction::make('exportPdf')
+                        ->label('Export to PDF')
+                        ->icon('heroicon-o-document-text')
+                        ->action(function ($records) {
+                            $products = $records;
+                            $pdf = Pdf::loadView('exports.products-pdf', compact('products'));
+                            return response()->streamDownload(function () use ($pdf) {
+                                echo $pdf->output();
+                            }, 'products_' . now()->format('Y-m-d_His') . '.pdf');
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->color('danger'),
+
+                    // ✅ Bulk Activate
                     Tables\Actions\BulkAction::make('activate')
+                        ->label('Activate Selected')
                         ->icon('heroicon-o-check-circle')
                         ->action(fn($records) => $records->each->update(['is_active' => true]))
                         ->deselectRecordsAfterCompletion()
-                        ->requiresConfirmation(),
+                        ->requiresConfirmation()
+                        ->color('success'),
+
+                    // ✅ Bulk Deactivate
+                    Tables\Actions\BulkAction::make('deactivate')
+                        ->label('Deactivate Selected')
+                        ->icon('heroicon-o-x-circle')
+                        ->action(fn($records) => $records->each->update(['is_active' => false]))
+                        ->deselectRecordsAfterCompletion()
+                        ->requiresConfirmation()
+                        ->color('warning'),
                 ]),
+            ])
+            ->headerActions([
+                // ✅ Export ALL to Excel
+                Tables\Actions\Action::make('exportAllExcel')
+                    ->label('Export All to Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(function () {
+                        return Excel::download(
+                            new ProductsExport(),
+                            'all_products_' . now()->format('Y-m-d_His') . '.xlsx'
+                        );
+                    })
+                    ->color('success'),
+
+                // ✅ Export ALL to PDF
+                Tables\Actions\Action::make('exportAllPdf')
+                    ->label('Export All to PDF')
+                    ->icon('heroicon-o-document-text')
+                    ->action(function () {
+                        $products = Product::with('category')->get();
+                        $pdf = Pdf::loadView('exports.products-pdf', compact('products'));
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, 'all_products_' . now()->format('Y-m-d_His') . '.pdf');
+                    })
+                    ->color('danger'),
             ]);
     }
 
