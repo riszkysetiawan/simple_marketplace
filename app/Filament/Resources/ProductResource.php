@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-class ProductResource extends Resource
+class ProductResource extends BaseResource
 {
     protected static ?string $model = Product::class;
 

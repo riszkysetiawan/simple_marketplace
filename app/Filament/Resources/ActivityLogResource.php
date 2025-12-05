@@ -12,7 +12,7 @@ use Filament\Tables\Table;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 
-class ActivityLogResource extends Resource
+class ActivityLogResource extends BaseResource
 {
     protected static ?string $model = Activity::class;
 

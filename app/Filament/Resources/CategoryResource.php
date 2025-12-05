@@ -11,7 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 
-class CategoryResource extends Resource
+class CategoryResource extends BaseResource
 {
     protected static ?string $model = Category::class;
 

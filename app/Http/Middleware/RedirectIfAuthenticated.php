@@ -9,9 +9,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RedirectIfAuthenticated
 {
-    /**
-     * Handle an incoming request. 
-     */
     public function handle(Request $request, Closure $next, string ...$guards): Response
     {
         $guards = empty($guards) ? [null] : $guards;
@@ -20,17 +17,18 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
                 $user = Auth::guard($guard)->user();
 
-                // ✅ Redirect berdasarkan role
+                // ✅ Super Admin → /admin
                 if ($user->hasRole('super_admin')) {
                     return redirect('/admin');
                 }
 
+                // ✅ Customer → /customer
                 if ($user->hasRole('customer')) {
-                    return redirect('/customer/dashboard');
+                    return redirect('/customer');
                 }
 
-                // Default fallback
-                return redirect('/');
+                // Default
+                return redirect('/dashboard');
             }
         }
 

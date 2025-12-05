@@ -9,11 +9,12 @@ use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
-use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable, HasApiTokens, HasRoles, HasPanelShield;
+    use HasFactory, Notifiable, HasApiTokens, HasRoles;
+
+    protected $guard_name = 'web';
 
     protected $fillable = [
         'name',
@@ -39,22 +40,37 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
+    // ✅ Panel Access Control
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasRole('super_admin');
-    }
+        $panelId = $panel->getId();
 
-    public function hasPermissionTo($permission, $guardName = null): bool
-    {
-        if ($this->hasRole('super_admin')) {
-            return true;
+        // Admin panel - only super_admin
+        if ($panelId === 'admin') {
+            return $this->hasRole('super_admin');
         }
 
-        return parent::hasPermissionTo($permission, $guardName);
+        // Customer panel - only customer
+        if ($panelId === 'customer') {
+            return $this->hasRole('customer');
+        }
+
+        return false;
     }
 
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    // Helper methods
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->hasRole('customer');
     }
 }

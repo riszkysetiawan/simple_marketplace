@@ -15,7 +15,7 @@ use Filament\Infolists\Infolist;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-class TransactionResource extends Resource
+class TransactionResource extends BaseResource
 {
     protected static ?string $model = Transaction::class;
 
