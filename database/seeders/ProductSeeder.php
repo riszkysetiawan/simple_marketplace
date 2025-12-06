@@ -22,7 +22,7 @@ class ProductSeeder extends Seeder
             return;
         }
 
-        $this->command->info('🚀 Generating 200 products per category...');
+        $this->command->info('🚀 Generating 200 products per category with images...');
 
         $totalCreated = 0;
 
@@ -41,8 +41,9 @@ class ProductSeeder extends Seeder
                     'price' => $this->generatePrice($category->name, $faker),
                     'stock' => $faker->numberBetween(0, 500),
                     'sku' => 'PRD-' . strtoupper(Str::random(8)),
-                    'is_active' => $faker->boolean(95), // 95% active
-                    'is_featured' => $i <= 10 ? true : $faker->boolean(5), // First 10 featured
+                    'image' => $this->generateImageUrl($category->name, $i), // ✅ Add image
+                    'is_active' => $faker->boolean(95),
+                    'is_featured' => $i <= 10 ?  true : $faker->boolean(5),
                 ]);
 
                 $totalCreated++;
@@ -58,8 +59,32 @@ class ProductSeeder extends Seeder
     }
 
     /**
-     * Generate realistic product names based on category
+     * ✅ Generate image URL based on category
      */
+    private function generateImageUrl(string $categoryName, int $index): string
+    {
+        // Use Picsum (Lorem Picsum) for random images
+        $seed = md5($categoryName . $index); // Unique seed for consistent images
+
+        // Image categories mapped to Picsum topics
+        $imageMapping = [
+            'Electronics' => "https://picsum.photos/seed/{$seed}-tech/800/800",
+            'Fashion' => "https://picsum.photos/seed/{$seed}-fashion/800/800",
+            'Home & Living' => "https://picsum.photos/seed/{$seed}-home/800/800",
+            'Beauty & Health' => "https://picsum.photos/seed/{$seed}-beauty/800/800",
+            'Sports & Outdoor' => "https://picsum.photos/seed/{$seed}-sport/800/800",
+            'Books & Stationery' => "https://picsum.photos/seed/{$seed}-books/800/800",
+            'Toys & Games' => "https://picsum.photos/seed/{$seed}-toys/800/800",
+            'Automotive' => "https://picsum.photos/seed/{$seed}-auto/800/800",
+            'Food & Beverages' => "https://picsum.photos/seed/{$seed}-food/800/800",
+            'Pet Supplies' => "https://picsum.photos/seed/{$seed}-pets/800/800",
+        ];
+
+        return $imageMapping[$categoryName] ??  "https://picsum.photos/seed/{$seed}/800/800";
+    }
+
+    // ...rest of your existing methods (generateProductName, generateDescription, generatePrice)
+
     private function generateProductName(string $categoryName, int $index, $faker): string
     {
         $productNames = [
@@ -212,7 +237,6 @@ class ProductSeeder extends Seeder
         $baseNames = $productNames[$categoryName] ?? ['Generic Product'];
         $baseName = $baseNames[array_rand($baseNames)];
 
-        // Add variations
         $variations = [
             'Pro',
             'Plus',
@@ -251,46 +275,33 @@ class ProductSeeder extends Seeder
             'Navy',
         ];
 
-        $sizes = ['Small', 'Medium', 'Large', 'XL', 'XXL'];
-
-        // 70% chance to add variation
         if ($faker->boolean(70)) {
-            $variation = $faker->randomElement($variations);
-            $baseName .= ' ' . $variation;
+            $baseName .= ' ' . $faker->randomElement($variations);
         }
 
-        // 50% chance to add color
         if ($faker->boolean(50)) {
-            $color = $faker->randomElement($colors);
-            $baseName .= ' ' . $color;
+            $baseName .= ' ' . $faker->randomElement($colors);
         }
 
-        // 30% chance to add size (fashion items)
         if (in_array($categoryName, ['Fashion', 'Sports & Outdoor']) && $faker->boolean(30)) {
-            $size = $faker->randomElement($sizes);
-            $baseName .= ' Size ' . $size;
+            $sizes = ['Small', 'Medium', 'Large', 'XL', 'XXL'];
+            $baseName .= ' Size ' . $faker->randomElement($sizes);
         }
 
-        // Add unique identifier
         $baseName .= ' #' . $index;
 
         return $baseName;
     }
 
-    /**
-     * Generate product description
-     */
     private function generateDescription(string $productName, $faker): string
     {
         $templates = [
-            "High quality {product}.{sentence1} {sentence2} Perfect for daily use.",
+            "High quality {product}. {sentence1} {sentence2} Perfect for daily use.",
             "Premium {product} with excellent features.{sentence1} {sentence2} Limited stock available! ",
             "Top-rated {product}.{sentence1} {sentence2} Buy now and get free shipping!",
             "Best-selling {product} in the market.{sentence1} {sentence2} 100% satisfaction guaranteed.",
             "Professional-grade {product}.{sentence1} {sentence2} Trusted by millions worldwide.",
         ];
-
-        $template = $faker->randomElement($templates);
 
         $sentences = [
             "Made from premium materials with advanced technology.",
@@ -303,6 +314,8 @@ class ProductSeeder extends Seeder
             "Trusted by professionals and enthusiasts alike.",
         ];
 
+        $template = $faker->randomElement($templates);
+
         return str_replace(
             ['{product}', '{sentence1}', '{sentence2}'],
             [$productName, $faker->randomElement($sentences), $faker->randomElement($sentences)],
@@ -310,9 +323,6 @@ class ProductSeeder extends Seeder
         );
     }
 
-    /**
-     * Generate realistic prices based on category
-     */
     private function generatePrice(string $categoryName, $faker): float
     {
         $priceRanges = [
@@ -330,10 +340,7 @@ class ProductSeeder extends Seeder
 
         [$min, $max] = $priceRanges[$categoryName] ?? [100000, 1000000];
 
-        // Generate price with some randomness
         $price = $faker->numberBetween($min, $max);
-
-        // Round to nearest 1000
         $price = round($price / 1000) * 1000;
 
         return $price;
