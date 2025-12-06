@@ -2,7 +2,9 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\TransactionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -10,89 +12,82 @@ use App\Http\Controllers\API\AuthController;
 |--------------------------------------------------------------------------
 */
 
-// ========================================
-// PUBLIC API ROUTES
-// ========================================
+// Public routes
+Route::prefix('v1')->group(function () {
 
-Route::prefix('v1')->name('api.v1.')->group(function () {
-    Route::post('/register', [AuthController::class, 'register'])->name('register');
-    Route::post('/login', [AuthController::class, 'login'])->name('login');
-
-    Route::get('/products', function () {
-        return response()->json(['success' => true, 'message' => 'Products (coming soon)']);
-    })->name('products.index');
-
-    Route::get('/categories', function () {
-        return response()->json(['success' => true, 'message' => 'Categories (coming soon)']);
-    })->name('categories.index');
-});
-
-// ========================================
-// PROTECTED API ROUTES (Auth Required)
-// ========================================
-
-Route::middleware('auth:api')->prefix('v1')->name('api.v1.')->group(function () {
-    Route::get('/user', [AuthController::class, 'user'])->name('user');
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-    Route::patch('/profile', function () {
-        return response()->json(['success' => true, 'message' => 'Profile update (coming soon)']);
-    })->name('profile.update');
-
-    Route::get('/orders', function () {
-        return response()->json(['success' => true, 'message' => 'Orders (coming soon)']);
-    })->name('orders.index');
-});
-
-// ========================================
-// ADMIN API ROUTES (Super Admin Only)
-// ========================================
-
-Route::middleware(['auth:api', 'role:super_admin'])
-    ->prefix('v1/admin')
-    ->name('api.v1.admin.')
-    ->group(function () {
-
-        Route::get('/stats', function () {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'total_products' => \App\Models\Product::count(),
-                    'total_orders' => \App\Models\Transaction::count(),
-                    'total_users' => \App\Models\User::count(),
-                    'total_revenue' => \App\Models\Transaction::sum('total_amount'),
-                ],
-            ]);
-        })->name('stats');
-
-        Route::get('/products', function () {
-            return response()->json(['success' => true, 'message' => 'Admin products (coming soon)']);
-        })->name('products.index');
-
-        Route::get('/categories', function () {
-            return response()->json(['success' => true, 'message' => 'Admin categories (coming soon)']);
-        })->name('categories.index');
+    // Authentication
+    Route::prefix('auth')->group(function () {
+        Route::post('/register', [AuthController::class, 'register']);
+        Route::post('/login', [AuthController::class, 'login']);
     });
 
-// ========================================
-// HEALTH CHECK
-// ========================================
+    // Public product routes
+    Route::prefix('products')->group(function () {
+        Route::get('/', [ProductController::class, 'index']);
+        Route::get('/{id}', [ProductController::class, 'show']);
+    });
+});
 
-Route::get('/health', function () {
+// Protected routes (requires authentication)
+Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+
+    // Auth user info
+    Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+    // Transactions (accessible by all authenticated users)
+    Route::prefix('transactions')->group(function () {
+        Route::get('/', [TransactionController::class, 'index']);
+        Route::get('/{id}', [TransactionController::class, 'show']);
+        Route::post('/', [TransactionController::class, 'store']);
+        Route::post('/{id}/cancel', [TransactionController::class, 'cancel']);
+    });
+
+    // Admin-only routes
+    Route::middleware(['role:super_admin'])->group(function () {
+
+        // Product management
+        Route::prefix('products')->group(function () {
+            Route::post('/', [ProductController::class, 'store']);
+            Route::put('/{id}', [ProductController::class, 'update']);
+            Route::delete('/{id}', [ProductController::class, 'destroy']);
+        });
+
+        // Transaction management
+        Route::prefix('transactions')->group(function () {
+            Route::put('/{id}', [TransactionController::class, 'update']);
+            Route::get('/statistics/all', [TransactionController::class, 'statistics']);
+        });
+    });
+});
+
+// API Documentation route
+Route::get('/v1/docs', function () {
     return response()->json([
-        'success' => true,
-        'message' => 'API is running',
-        'timestamp' => now()->toISOString(),
+        'message' => 'Simple Marketplace API v1',
+        'documentation' => url('/api/documentation'),
+        'endpoints' => [
+            'auth' => [
+                'POST /api/v1/auth/register' => 'Register new user',
+                'POST /api/v1/auth/login' => 'Login user',
+                'POST /api/v1/auth/logout' => 'Logout user (requires auth)',
+                'GET /api/v1/auth/me' => 'Get authenticated user (requires auth)',
+            ],
+            'products' => [
+                'GET /api/v1/products' => 'Get all products',
+                'GET /api/v1/products/{id}' => 'Get product by ID',
+                'POST /api/v1/products' => 'Create product (admin only)',
+                'PUT /api/v1/products/{id}' => 'Update product (admin only)',
+                'DELETE /api/v1/products/{id}' => 'Delete product (admin only)',
+            ],
+            'transactions' => [
+                'GET /api/v1/transactions' => 'Get all transactions (requires auth)',
+                'GET /api/v1/transactions/{id}' => 'Get transaction by ID (requires auth)',
+                'POST /api/v1/transactions' => 'Create transaction (requires auth)',
+                'PUT /api/v1/transactions/{id}' => 'Update transaction (admin only)',
+                'POST /api/v1/transactions/{id}/cancel' => 'Cancel transaction (requires auth)',
+                'GET /api/v1/transactions/statistics/all' => 'Get statistics (admin only)',
+            ],
+        ],
     ]);
-})->name('api.health');
-
-// ========================================
-// FALLBACK (404)
-// ========================================
-
-Route::fallback(function () {
-    return response()->json([
-        'success' => false,
-        'message' => 'API endpoint not found',
-    ], 404);
 });

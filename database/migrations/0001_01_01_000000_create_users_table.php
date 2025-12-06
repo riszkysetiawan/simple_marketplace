@@ -10,32 +10,37 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('google_id')->nullable()->unique();
-            $table->string('facebook_id')->nullable()->unique();
             $table->string('name');
             $table->string('email')->unique();
+
+            // ✅ Optional: direct relation to roles (for caching/performance)
+            // This is a denormalized field - Spatie uses model_has_roles pivot table
+            $table->unsignedBigInteger('id_roles')->nullable();
+
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
+            $table->string('google_id')->nullable()->unique();
+            $table->string('facebook_id')->nullable()->unique();
             $table->string('avatar')->nullable();
             $table->string('phone')->nullable();
             $table->text('address')->nullable();
             $table->rememberToken();
             $table->timestamps();
 
+            // ✅ Indexes
+            $table->index('id_roles');
             $table->index('email');
             $table->index('google_id');
             $table->index('facebook_id');
+
+            // ❌ NO FOREIGN KEY (karena roles table belum exist saat migration ini run)
+            // Foreign key akan ditambahkan di migration terpisah setelah Spatie migration
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
-
-            $table->foreign('email')
-                ->references('email')
-                ->on('users')
-                ->onDelete('cascade');
         });
 
         Schema::create('sessions', function (Blueprint $table) {
@@ -45,12 +50,6 @@ return new class extends Migration
             $table->text('user_agent')->nullable();
             $table->longText('payload');
             $table->integer('last_activity')->index();
-
-            // Foreign key ke users
-            $table->foreign('user_id')
-                ->references('id')
-                ->on('users')
-                ->onDelete('cascade');
         });
     }
 

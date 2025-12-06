@@ -9,21 +9,21 @@ use Symfony\Component\HttpFoundation\Response;
 class CheckRole
 {
     /**
-     * Handle an incoming request.
+     * Handle an incoming request. 
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (! $request->user()) {
+        if (!$request->user()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated',
+                'message' => 'Unauthenticated'
             ], 401);
         }
 
-        if (! $request->user()->hasRole($role)) {
+        if (!$request->user()->hasRole($role)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized.   Insufficient permissions.',
+                'message' => 'Unauthorized.  Admin access required.'
             ], 403);
         }
 

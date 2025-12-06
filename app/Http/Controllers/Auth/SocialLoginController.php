@@ -48,7 +48,6 @@ class SocialLoginController extends Controller
 
             Auth::login($user, true);
 
-            // ✅ Redirect based on role
             if ($user->hasRole('super_admin')) {
                 return redirect()->intended('/admin');
             }
@@ -63,7 +62,9 @@ class SocialLoginController extends Controller
 
     public function redirectToFacebook()
     {
-        return Socialite::driver('facebook')->scopes(['email'])->redirect();
+        // ✅ FIX: Remove ->scopes(['email']) or use valid scopes
+        return Socialite::driver('facebook')
+            ->redirect();
     }
 
     public function handleFacebookCallback()
@@ -71,13 +72,27 @@ class SocialLoginController extends Controller
         try {
             $facebookUser = Socialite::driver('facebook')->user();
 
-            if (! $facebookUser->getEmail()) {
-                return redirect('/login')->with('error', 'Facebook did not provide your email.');
+            // ✅ Handle case where Facebook doesn't provide email
+            $email = $facebookUser->getEmail();
+
+            if (! $email) {
+                // Generate fallback email from Facebook ID
+                $email = $facebookUser->getId() . '@facebook.com';
+
+                \Log::warning('Facebook user has no email', [
+                    'facebook_id' => $facebookUser->getId(),
+                    'name' => $facebookUser->getName(),
+                ]);
             }
 
-            $user = User::where('email', $facebookUser->getEmail())->first();
+            $user = User::where('facebook_id', $facebookUser->getId())->first();
+
+            if (! $user) {
+                $user = User::where('email', $email)->first();
+            }
 
             if ($user) {
+                // Update Facebook ID if not set
                 if (! $user->facebook_id) {
                     $user->update([
                         'facebook_id' => $facebookUser->getId(),
@@ -89,9 +104,10 @@ class SocialLoginController extends Controller
                     $user->assignRole('customer');
                 }
             } else {
+                // Create new user
                 $user = User::create([
                     'name' => $facebookUser->getName(),
-                    'email' => $facebookUser->getEmail(),
+                    'email' => $email,
                     'facebook_id' => $facebookUser->getId(),
                     'avatar' => $facebookUser->getAvatar(),
                     'email_verified_at' => now(),
@@ -111,7 +127,7 @@ class SocialLoginController extends Controller
         } catch (Exception $e) {
             \Log::error('Facebook OAuth Error: ' . $e->getMessage());
 
-            return redirect('/login')->with('error', 'Failed to login with Facebook.');
+            return redirect('/login')->with('error', 'Failed to login with Facebook. Please try another method.');
         }
     }
 }

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->json('images')->nullable();
             $table->string('sku')->unique()->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_featured')->default(false);
             $table->timestamps();
 
             // Indexes

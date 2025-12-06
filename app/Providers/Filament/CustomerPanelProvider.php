@@ -17,6 +17,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Http\Responses\Auth\LogoutResponse;
 
 class CustomerPanelProvider extends PanelProvider
 {
@@ -25,7 +26,7 @@ class CustomerPanelProvider extends PanelProvider
         return $panel
             ->id('customer')
             ->path('customer')
-            ->login()
+            ->login()  // ✅ Enable login
             ->brandName('Customer Portal')
             ->brandLogo(asset('images/logo.png'))
             ->favicon(asset('favicon.ico'))
@@ -34,7 +35,6 @@ class CustomerPanelProvider extends PanelProvider
             ])
             ->authGuard('web')
 
-            // ✅ Use same resources as admin (filtered by permissions)
             ->discoverResources(
                 in: app_path('Filament/Resources'),
                 for: 'App\\Filament\\Resources'
@@ -58,7 +58,6 @@ class CustomerPanelProvider extends PanelProvider
                 Widgets\AccountWidget::class,
             ])
 
-            // ✅ FIX: Correct format for navigationGroups
             ->navigationGroups([
                 'Products',
                 'Orders',
@@ -84,5 +83,14 @@ class CustomerPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
             ->sidebarCollapsibleOnDesktop();
+    }
+
+    // ✅ Register custom logout response
+    public function register(): void
+    {
+        parent::register();
+
+        // Override Filament's logout response
+        $this->app->bind(LogoutResponse::class, \App\Http\Responses\CustomLogoutResponse::class);
     }
 }

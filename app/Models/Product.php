@@ -22,24 +22,41 @@ class Product extends Model
         'images',
         'sku',
         'is_active',
+        'is_featured',  // ✅ Add this
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'stock' => 'integer',
         'is_active' => 'boolean',
+        'is_featured' => 'boolean',  // ✅ Add this
         'images' => 'array',
     ];
 
-    // ✅ Activity Log Configuration
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'price', 'stock', 'is_active', 'category_id'])
+            ->logOnly(['name', 'price', 'stock', 'is_active', 'is_featured', 'category_id'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn(string $eventName) => "Product has been {$eventName}")
             ->useLogName('product');
+    }
+
+    // ✅ Add scopes
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeInStock($query)
+    {
+        return $query->where('stock', '>', 0);
     }
 
     // Relationships

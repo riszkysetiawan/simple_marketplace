@@ -7,12 +7,14 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Laravel\Sanctum\HasApiTokens as SanctumHasApiTokens;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable, HasApiTokens, HasRoles;
+    use HasFactory, Notifiable, HasApiTokens, HasRoles, HasPanelShield;  // ✅ Add HasPanelShield
 
     protected $guard_name = 'web';
 
@@ -25,6 +27,7 @@ class User extends Authenticatable implements FilamentUser
         'avatar',
         'phone',
         'address',
+        'id_roles',
     ];
 
     protected $hidden = [
@@ -37,10 +40,31 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'id_roles' => 'integer',
         ];
     }
 
-    // ✅ Panel Access Control
+    // ===== DIRECT RELATION =====
+
+    public function role()
+    {
+        return $this->belongsTo(\Spatie\Permission\Models\Role::class, 'id_roles', 'id');
+    }
+
+    // ===== HELPER METHODS =====
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->hasRole('customer');
+    }
+
+    // ===== FILAMENT PANEL ACCESS =====
+
     public function canAccessPanel(Panel $panel): bool
     {
         $panelId = $panel->getId();
@@ -58,19 +82,10 @@ class User extends Authenticatable implements FilamentUser
         return false;
     }
 
+    // ===== RELATIONSHIPS =====
+
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
-    }
-
-    // Helper methods
-    public function isSuperAdmin(): bool
-    {
-        return $this->hasRole('super_admin');
-    }
-
-    public function isCustomer(): bool
-    {
-        return $this->hasRole('customer');
     }
 }

@@ -2,20 +2,16 @@
 
 return [
     'shield_resource' => [
-        'should_register_navigation' => true,
+        'should_register_navigation' => true,  // ✅ Show in navigation
         'slug' => 'shield/roles',
-        'enabled' => true,
         'navigation_sort' => -1,
         'navigation_badge' => true,
         'navigation_group' => true,
-        'sub_navigation_position' => null,
         'is_globally_searchable' => false,
         'show_model_path' => true,
-        'is_scoped_to_tenant' => true,
+        'is_scoped_to_tenant' => false,
         'cluster' => null,
     ],
-
-    'tenant_model' => null,
 
     'auth_provider_model' => [
         'fqcn' => 'App\\Models\\User',
@@ -23,14 +19,14 @@ return [
 
     'super_admin' => [
         'enabled' => true,
-        'name' => 'super_admin',
+        'name' => 'super_admin',  // ✅ Your super admin role name
         'define_via_gate' => false,
-        'intercept_gate' => 'before', // after
+        'intercept_gate' => 'before',
     ],
 
-    'panel_user' => [
+    'filament_user' => [
         'enabled' => true,
-        'name' => 'panel_user',
+        'group' => 'Filament Shield',  // ✅ Navigation group
     ],
 
     'permission_prefixes' => [
@@ -62,8 +58,6 @@ return [
 
     'generator' => [
         'option' => 'policies_and_permissions',
-        'policy_directory' => 'Policies',
-        'policy_namespace' => 'Policies',
     ],
 
     'exclude' => [
@@ -90,5 +84,4 @@ return [
     'register_role_policy' => [
         'enabled' => true,
     ],
-
 ];
