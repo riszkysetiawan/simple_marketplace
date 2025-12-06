@@ -13,9 +13,12 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 
+use App\Models\Product;
+use App\Models\Transaction;
+
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable, HasApiTokens, HasRoles, HasPanelShield;  // ✅ Add HasPanelShield
+    use HasFactory, Notifiable, HasApiTokens, HasRoles, HasPanelShield;
 
     protected $guard_name = 'web';
 
@@ -44,6 +47,7 @@ class User extends Authenticatable implements FilamentUser
             'id_roles' => 'integer',
         ];
     }
+
 
     public function sendPasswordResetNotification($token)
     {

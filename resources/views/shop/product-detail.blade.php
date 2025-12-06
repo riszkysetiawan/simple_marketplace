@@ -181,7 +181,7 @@
                     </div>
 
                     <!-- Add to Cart Form -->
-                    @if ($product->stock > 0 && $product->is_active)
+                    {{-- @if ($product->stock > 0 && $product->is_active)
                         <form action="{{ route('cart.add', $product) }}" method="POST" class="mb-4" id="addToCartForm">
                             @csrf
                             <div class="row g-3 align-items-end">
@@ -215,8 +215,45 @@
                                 This product is currently out of stock.
                             @endif
                         </div>
-                    @endif
+                    @endif --}}
 
+                    <!-- Add to Cart Form -->
+                    @if ($product->stock > 0 && $product->is_active)
+                        <form action="{{ route('cart.add', $product) }}" method="POST" class="mb-4" id="addToCartForm">
+                            @csrf
+                            <div class="row g-3 align-items-end">
+                                <div class="col-auto">
+                                    <label class="form-label fw-bold">Quantity</label>
+                                    <div class="input-group" style="width: 150px;">
+                                        <button class="btn btn-outline-secondary" type="button" id="decreaseQty">
+                                            <i class="bi bi-dash"></i>
+                                        </button>
+                                        <input type="number" name="quantity" class="form-control text-center"
+                                            value="1" min="1" max="{{ $product->stock }}" id="quantity"
+                                            required>
+                                        <button class="btn btn-outline-secondary" type="button" id="increaseQty">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                                <i class="bi bi-cart-plus me-2"></i> Add to Cart
+                                            </button>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <button type="button" class="btn btn-success btn-lg w-100"
+                                                onclick="buyNow()">
+                                                <i class="bi bi-lightning-charge me-2"></i> Buy Now
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    @endif
                     <!-- Action Buttons -->
                     <div class="d-flex gap-2 mb-4">
                         <button class="btn btn-outline-danger flex-fill" onclick="addToWishlist({{ $product->id }})">
@@ -344,154 +381,551 @@
     </style>
 @endpush
 
+
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Quantity controls
-        document.getElementById('increaseQty').addEventListener('click', function() {
+        // ========================================
+        // GLOBAL VARIABLES
+        // ========================================
+        let isInWishlist = {{ auth()->check() && auth()->user()->hasInWishlist($product->id) ? 'true' : 'false' }};
+        const productId = {{ $product->id }};
+
+        // ========================================
+        // QUANTITY CONTROLS
+        // ========================================
+        document.getElementById('increaseQty')?.addEventListener('click', function() {
             let qty = document.getElementById('quantity');
             let max = parseInt(qty.getAttribute('max'));
+
             if (parseInt(qty.value) < max) {
                 qty.value = parseInt(qty.value) + 1;
             } else {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Maximum Stock Reached',
-                    text: `Only ${max} units available`,
+                    html: `<p>Only <strong>${max} units</strong> available in stock</p>`,
                     toast: true,
                     position: 'top-end',
                     showConfirmButton: false,
-                    timer: 3000
+                    timer: 3000,
+                    timerProgressBar: true
                 });
             }
         });
 
-        document.getElementById('decreaseQty').addEventListener('click', function() {
+        document.getElementById('decreaseQty')?.addEventListener('click', function() {
             let qty = document.getElementById('quantity');
             if (parseInt(qty.value) > 1) {
                 qty.value = parseInt(qty.value) - 1;
             }
         });
 
-        // Thumbnail click to change main image
+        // Keyboard support for quantity
+        document.getElementById('quantity')?.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                document.getElementById('increaseQty').click();
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                document.getElementById('decreaseQty').click();
+            }
+        });
+
+        // ========================================
+        // IMAGE GALLERY
+        // ========================================
         document.querySelectorAll('.thumbnail').forEach(function(thumb) {
             thumb.addEventListener('click', function() {
+                // Update main image
                 document.getElementById('mainImage').src = this.src;
 
-                // Add active border to clicked thumbnail
-                document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('border-primary',
-                    'border-3'));
+                // Update active border
+                document.querySelectorAll('.thumbnail').forEach(t => {
+                    t.classList.remove('border-primary', 'border-3');
+                });
                 this.classList.add('border-primary', 'border-3');
             });
         });
 
-        // Add to cart with SweetAlert
-        @if (auth()->check())
+        // Image zoom on hover
+        const mainImage = document.getElementById('mainImage');
+        if (mainImage) {
+            mainImage.addEventListener('mousemove', function(e) {
+                const rect = this.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                this.style.transformOrigin = `${x}% ${y}%`;
+            });
+
+            mainImage.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.5)';
+                this.style.cursor = 'zoom-in';
+            });
+
+            mainImage.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+                this.style.cursor = 'default';
+            });
+        }
+
+        // ========================================
+        // ADD TO CART
+        // ========================================
+        @auth
+        document.getElementById('addToCartForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const quantity = formData.get('quantity');
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+
+            // Disable button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Adding...';
+
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Update cart count
+                    updateCartCount(data.cart_count || (parseInt(document.getElementById('navCartCount')
+                        ?.textContent || 0) + parseInt(quantity)));
+
+                    // Show success message
+                    const result = await Swal.fire({
+                        icon: 'success',
+                        title: 'Added to Cart!',
+                        html: `
+                            <p><strong>${quantity} item(s)</strong> added to your cart</p>
+                            <p class="text-muted small">Product: {{ Str::limit($product->name, 40) }}</p>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="bi bi-cart3 me-2"></i> Go to Cart',
+                        cancelButtonText: '<i class="bi bi-shop me-2"></i> Continue Shopping',
+                        confirmButtonColor: '#667eea',
+                        cancelButtonColor: '#6c757d',
+                        reverseButtons: true
+                    });
+
+                    if (result.isConfirmed) {
+                        window.location.href = '{{ route('cart.index') }}';
+                    }
+                } else {
+                    throw new Error(data.message || 'Failed to add to cart');
+                }
+            } catch (error) {
+                console.error('Add to cart error:', error);
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed to Add',
+                    text: error.message || 'Something went wrong',
+                    confirmButtonColor: '#667eea'
+                });
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        });
+        @else
             document.getElementById('addToCartForm')?.addEventListener('submit', function(e) {
                 e.preventDefault();
 
-                const formData = new FormData(this);
-                const quantity = formData.get('quantity');
-
-                fetch(this.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Added to Cart!',
-                                text: `${quantity} item(s) added to your cart`,
-                                showCancelButton: true,
-                                confirmButtonText: 'Go to Cart',
-                                cancelButtonText: 'Continue Shopping',
-                                confirmButtonColor: '#0d6efd'
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    window.location.href = '{{ route('cart.index') }}';
-                                }
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: data.message || 'Failed to add to cart'
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Something went wrong'
-                        });
-                    });
-            });
-        @endif
-
-        // Add to wishlist
-        function addToWishlist(productId) {
-            @if (auth()->check())
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Coming Soon',
-                    text: 'Wishlist feature will be available soon!',
-                    confirmButtonColor: '#0d6efd'
-                });
-            @else
                 Swal.fire({
                     icon: 'warning',
                     title: 'Login Required',
-                    text: 'Please login to add items to wishlist',
+                    text: 'Please login to add items to cart',
                     showCancelButton: true,
-                    confirmButtonText: 'Login',
-                    confirmButtonColor: '#0d6efd'
+                    confirmButtonText: '<i class="bi bi-box-arrow-in-right me-2"></i> Login',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#667eea',
+                    cancelButtonColor: '#6c757d'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         window.location.href = '{{ route('login') }}';
                     }
                 });
-            @endif
+            });
+        @endauth
+
+        // ========================================
+        // WISHLIST FUNCTIONS
+        // ========================================
+        async function addToWishlist(productId) {
+            @guest
+            Swal.fire({
+                icon: 'warning',
+                title: 'Login Required',
+                text: 'Please login to add items to wishlist',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-box-arrow-in-right me-2"></i> Login',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#667eea',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '{{ route('login') }}';
+                }
+            });
+            return;
+        @endguest
+
+        @auth
+        // Toggle wishlist
+        if (isInWishlist) {
+            await removeFromWishlist(productId);
+        } else {
+            await addProductToWishlist(productId);
+        }
+        @endauth
         }
 
-        // Share product
-        function shareProduct() {
-            if (navigator.share) {
-                navigator.share({
-                    title: '{{ $product->name }}',
-                    text: '{{ Str::limit($product->description, 100) }}',
-                    url: window.location.href
-                }).then(() => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Shared! ',
+        @auth
+        async function addProductToWishlist(productId) {
+            try {
+                const response = await fetch(`/wishlist/add/${productId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    isInWishlist = true;
+                    updateWishlistButton();
+                    updateWishlistCount(data.wishlist_count);
+
+                    // Show success toast
+                    const Toast = Swal.mixin({
                         toast: true,
                         position: 'top-end',
                         showConfirmButton: false,
-                        timer: 3000
+                        timer: 3000,
+                        timerProgressBar: true,
+                        didOpen: (toast) => {
+                            toast.addEventListener('mouseenter', Swal.stopTimer)
+                            toast.addEventListener('mouseleave', Swal.resumeTimer)
+                        }
                     });
-                }).catch(console.error);
-            } else {
-                // Fallback: copy to clipboard
-                navigator.clipboard.writeText(window.location.href).then(() => {
-                    Swal.fire({
+
+                    Toast.fire({
                         icon: 'success',
-                        title: 'Link Copied!',
-                        text: 'Product link copied to clipboard',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000
+                        title: '❤️ Added to Wishlist',
+                        text: data.message
                     });
+                } else {
+                    throw new Error(data.message || 'Failed to add to wishlist');
+                }
+            } catch (error) {
+                console.error('Wishlist error:', error);
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed',
+                    text: error.message,
+                    confirmButtonColor: '#667eea'
                 });
             }
         }
+
+        async function removeFromWishlist(productId) {
+            const result = await Swal.fire({
+                title: 'Remove from Wishlist?',
+                text: 'This item will be removed from your wishlist',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Remove',
+                cancelButtonText: 'Cancel'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                const response = await fetch(`/wishlist/remove/${productId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    isInWishlist = false;
+                    updateWishlistButton();
+                    updateWishlistCount(data.wishlist_count);
+
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+
+                    Toast.fire({
+                        icon: 'info',
+                        title: 'Removed from Wishlist',
+                        text: data.message
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to remove');
+                }
+            } catch (error) {
+                console.error('Remove error:', error);
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed',
+                    text: error.message,
+                    confirmButtonColor: '#667eea'
+                });
+            }
+        }
+
+        function updateWishlistButton() {
+            const wishlistBtn = document.querySelector('[onclick*="addToWishlist"]');
+            if (wishlistBtn) {
+                if (isInWishlist) {
+                    wishlistBtn.classList.remove('btn-outline-danger');
+                    wishlistBtn.classList.add('btn-danger');
+                    wishlistBtn.innerHTML = '<i class="bi bi-heart-fill me-2"></i> Remove from Wishlist';
+                } else {
+                    wishlistBtn.classList.remove('btn-danger');
+                    wishlistBtn.classList.add('btn-outline-danger');
+                    wishlistBtn.innerHTML = '<i class="bi bi-heart me-2"></i> Add to Wishlist';
+                }
+            }
+        }
+
+        // Update button on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateWishlistButton();
+        });
+        @endauth
+
+        // ========================================
+        // SHARE PRODUCT
+        // ========================================
+        async function shareProduct() {
+            const shareData = {
+                title: '{{ $product->name }}',
+                text: '{{ Str::limit($product->description, 100) }}',
+                url: window.location.href
+            };
+
+            try {
+                if (navigator.share) {
+                    // Use native share API
+                    await navigator.share(shareData);
+
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Shared Successfully!'
+                    });
+                } else {
+                    // Fallback: Show share options
+                    const result = await Swal.fire({
+                        title: 'Share Product',
+                        html: `
+                        <div class="d-flex flex-column gap-3">
+                            <button class="btn btn-primary" onclick="copyToClipboard()">
+                                <i class="bi bi-clipboard me-2"></i> Copy Link
+                            </button>
+                            <a href="https://wa.me/?text=${encodeURIComponent(shareData.title + ' - ' + shareData.url)}" 
+                               target="_blank" 
+                               class="btn btn-success">
+                                <i class="bi bi-whatsapp me-2"></i> Share via WhatsApp
+                            </a>
+                            <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareData.url)}" 
+                               target="_blank" 
+                               class="btn btn-primary">
+                                <i class="bi bi-facebook me-2"></i> Share on Facebook
+                            </a>
+                            <a href="https://twitter.com/intent/tweet? text=${encodeURIComponent(shareData.title)}&url=${encodeURIComponent(shareData.url)}" 
+                               target="_blank" 
+                               class="btn btn-info">
+                                <i class="bi bi-twitter me-2"></i> Share on Twitter
+                            </a>
+                        </div>
+                    `,
+                        showConfirmButton: false,
+                        showCloseButton: true
+                    });
+                }
+            } catch (error) {
+                console.error('Share error:', error);
+            }
+        }
+
+        async function copyToClipboard() {
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Link Copied! ',
+                    text: 'Product link copied to clipboard'
+                });
+
+                Swal.close();
+            } catch (error) {
+                console.error('Copy error:', error);
+            }
+        }
+
+        // ========================================
+        // UTILITY FUNCTIONS
+        // ========================================
+        function updateCartCount(count) {
+            const cartBadge = document.getElementById('navCartCount');
+            if (cartBadge) {
+                cartBadge.textContent = count;
+
+                // Add animation
+                cartBadge.style.animation = 'none';
+                setTimeout(() => {
+                    cartBadge.style.animation = 'pulse 0.5s';
+                }, 10);
+            }
+        }
+
+        function updateWishlistCount(count) {
+            const wishlistBadge = document.getElementById('navWishlistCount');
+            if (wishlistBadge) {
+                wishlistBadge.textContent = count;
+
+                if (count > 0) {
+                    wishlistBadge.style.display = 'inline-block';
+                } else {
+                    wishlistBadge.style.display = 'none';
+                }
+
+                // Add animation
+                wishlistBadge.style.animation = 'none';
+                setTimeout(() => {
+                    wishlistBadge.style.animation = 'pulse 0.5s';
+                }, 10);
+            }
+        }
+
+        // ========================================
+        // BUY NOW (Quick Checkout)
+        // ========================================
+        function buyNow() {
+            @auth
+            const quantity = document.getElementById('quantity').value;
+
+            Swal.fire({
+                title: 'Quick Checkout',
+                html: `
+                    <p>Proceed to checkout with <strong>${quantity} item(s)</strong>?</p>
+                    <p class="text-muted small">This will take you directly to the checkout page</p>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-lightning-charge me-2"></i> Buy Now',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#667eea',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Add to cart first, then redirect to checkout
+                    document.getElementById('addToCartForm').submit();
+                    setTimeout(() => {
+                        window.location.href = '{{ route('checkout.index') }}';
+                    }, 500);
+                }
+            });
+        @else
+            Swal.fire({
+                icon: 'warning',
+                title: 'Login Required',
+                text: 'Please login to proceed with checkout',
+                showCancelButton: true,
+                confirmButtonText: 'Login',
+                confirmButtonColor: '#667eea'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '{{ route('login') }}';
+                }
+            });
+        @endauth
+        }
+
+        // ========================================
+        // SESSION MESSAGES
+        // ========================================
+        @if (session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: '{{ session('success') }}',
+                confirmButtonColor: '#667eea',
+                timer: 3000,
+                timerProgressBar: true
+            });
+        @endif
+
+        @if (session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: '{{ session('error') }}',
+                confirmButtonColor: '#667eea'
+            });
+        @endif
+
+        // ========================================
+        // ANIMATIONS
+        // ========================================
+        const style = document.createElement('style');
+        style.textContent = `
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        #mainImage {
+            transition: transform 0.3s ease;
+        }
+    `;
+        document.head.appendChild(style);
+
+        console.log('✅ Product detail page loaded successfully!');
     </script>
 @endpush

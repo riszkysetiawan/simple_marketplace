@@ -22,49 +22,14 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request)
+    public function store(LoginRequest $request): RedirectResponse
     {
-        try {
-            $request->authenticate();
-            $request->session()->regenerate();
+        $request->authenticate();
 
-            $user = Auth::user();
+        $request->session()->regenerate();
 
-            // Determine redirect URL
-            if ($user->hasRole('super_admin')) {
-                $redirectUrl = url('/admin');
-            } elseif ($user->hasRole('customer')) {
-                $redirectUrl = url('/customer');
-            } else {
-                $redirectUrl = route('dashboard');
-            }
-
-            // ✅ Check if AJAX request
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Login successful',
-                    'redirect' => $redirectUrl,
-                    'user' => [
-                        'name' => $user->name,
-                        'email' => $user->email,
-                    ]
-                ]);
-            }
-
-            return redirect()->intended($redirectUrl);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // ✅ Return JSON for AJAX requests
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'The provided credentials are incorrect.',
-                    'errors' => $e->errors()
-                ], 422);
-            }
-
-            throw $e;
-        }
+        return redirect()->intended(route('home'))
+            ->with('success', 'Welcome back, ' . auth()->user()->name . '!');
     }
 
     /**
@@ -72,11 +37,16 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $userName = auth()->user()->name;
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
+
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('home')
+            ->with('logout_success', true)
+            ->with('success', 'Goodbye, ' . $userName . '!  See you soon.');
     }
 }

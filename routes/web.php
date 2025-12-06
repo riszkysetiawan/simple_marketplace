@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\SocialLoginController;
 use App\Http\Controllers\Auth\CustomLogoutController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -69,9 +70,11 @@ Route::post('/logout', CustomLogoutController::class)
 // ========================================
 
 Route::middleware('auth')->prefix('profile')->name('profile.')->group(function () {
-    Route::get('/', [ProfileController::class, 'edit'])->name('edit');
-    Route::patch('/', [ProfileController::class, 'update'])->name('update');
-    Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
+    Route::get('/', [ProfileController::class, 'index'])->name('index');
+    Route::post('/update', [ProfileController::class, 'updateProfile'])->name('update');
+    Route::post('/avatar', [ProfileController::class, 'updateAvatar'])->name('updateAvatar');
+    Route::post('/password', [ProfileController::class, 'updatePassword'])->name('updatePassword');
+    Route::post('/delete', [ProfileController::class, 'deleteAccount'])->name('delete');
 });
 
 // ========================================

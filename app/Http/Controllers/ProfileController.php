@@ -2,59 +2,143 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Show user profile
      */
-    public function edit(Request $request): View
+    public function index()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
+        $user = auth()->user()->load('roles');
+
+        // Get user statistics
+        $stats = [
+            'total_orders' => $user->transactions()->count(),
+            'pending_orders' => $user->transactions()->where('status', 'pending')->count(),
+            'completed_orders' => $user->transactions()->where('status', 'completed')->count(),
+            'total_spent' => $user->transactions()
+                ->whereIn('status', ['completed', 'shipped'])
+                ->sum('total_amount'),
+        ];
+
+        return view('profile.index', compact('user', 'stats'));
+    }
+
+    /**
+     * Update profile information
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully'
         ]);
     }
 
     /**
-     * Update the user's profile information.
+     * Update avatar
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function updateAvatar(Request $request)
     {
-        $request->user()->fill($request->validated());
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user = auth()->user();
+
+        // Delete old avatar
+        if ($user->avatar && Storage::exists('public/' . $user->avatar)) {
+            Storage::delete('public/' . $user->avatar);
         }
 
-        $request->user()->save();
+        // Store new avatar
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->update(['avatar' => $path]);
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return response()->json([
+            'success' => true,
+            'message' => 'Avatar updated successfully',
+            'avatar_url' => Storage::url($path)
+        ]);
     }
 
     /**
-     * Delete the user's account.
+     * Update password
      */
-    public function destroy(Request $request): RedirectResponse
+    public function updatePassword(Request $request)
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
+        $validated = $request->validate([
+            'current_password' => 'required',
+            'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
-        $user = $request->user();
+        $user = auth()->user();
 
-        Auth::logout();
+        // Check current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Current password is incorrect'
+            ], 422);
+        }
 
+        $user->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password updated successfully'
+        ]);
+    }
+
+    /**
+     * Delete account
+     */
+    public function deleteAccount(Request $request)
+    {
+        $request->validate([
+            'password' => 'required'
+        ]);
+
+        $user = auth()->user();
+
+        if (! Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password is incorrect'
+            ], 422);
+        }
+
+        // Delete avatar
+        if ($user->avatar && Storage::exists('public/' . $user->avatar)) {
+            Storage::delete('public/' . $user->avatar);
+        }
+
+        // Logout and delete
+        auth()->logout();
         $user->delete();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
+        return response()->json([
+            'success' => true,
+            'message' => 'Account deleted successfully',
+            'redirect' => route('home')
+        ]);
     }
 }

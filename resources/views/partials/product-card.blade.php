@@ -42,10 +42,23 @@
         @endif
 
         <!-- Wishlist Button -->
-        <button class="btn btn-light btn-sm position-absolute top-0 start-0 m-2 rounded-circle wishlist-btn"
-            style="width: 40px; height: 40px;" title="Add to Wishlist" onclick="addToWishlist({{ $product->id }})">
-            <i class="bi bi-heart"></i>
-        </button>
+        {{-- 
+        @auth
+            <button
+                class="btn btn-light btn-sm position-absolute top-0 start-0 m-2 rounded-circle wishlist-btn {{ auth()->user()->hasInWishlist($product->id) ? 'active' : '' }}"
+                style="width: 40px; height: 40px;"
+                title="{{ auth()->user()->hasInWishlist($product->id) ? 'Remove from Wishlist' : 'Add to Wishlist' }}"
+                onclick="toggleWishlist(event, {{ $product->id }})">
+                <i
+                    class="bi {{ auth()->user()->hasInWishlist($product->id) ? 'bi-heart-fill text-danger' : 'bi-heart' }}"></i>
+            </button>
+        @else
+            <button class="btn btn-light btn-sm position-absolute top-0 start-0 m-2 rounded-circle wishlist-btn"
+                style="width: 40px; height: 40px;" title="Add to Wishlist"
+                onclick="toggleWishlist(event, {{ $product->id }})">
+                <i class="bi bi-heart"></i>
+            </button>
+        @endauth --}}
 
         <!-- Quick View Overlay -->
         <div class="product-overlay">

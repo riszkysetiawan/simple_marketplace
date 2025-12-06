@@ -42,7 +42,7 @@ class TransactionController extends Controller
                 if ($product->stock < $item['quantity']) {
                     return response()->json([
                         'success' => false,
-                        'message' => "Insufficient stock for {$product->name}. Available: {$product->stock}"
+                        'message' => "Insufficient stock for {$product->name}.Available: {$product->stock}"
                     ], 400);
                 }
 
@@ -149,18 +149,33 @@ class TransactionController extends Controller
     /**
      * Get user's transactions
      */
+    /**
+     * Get user's transactions
+     */
     public function index(Request $request)
     {
         $query = Transaction::with(['items.product'])
             ->where('user_id', auth()->id())
             ->latest();
 
+        // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
 
+        // Search
+        if ($request->has('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('order_number', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('items.product', function ($q2) use ($request) {
+                        $q2->where('name', 'like', '%' . $request->search . '%');
+                    });
+            });
+        }
+
         $transactions = $query->paginate(10);
 
+        // If AJAX request
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
@@ -168,6 +183,7 @@ class TransactionController extends Controller
             ]);
         }
 
+        // Web request
         return view('customer.transactions', compact('transactions'));
     }
 
