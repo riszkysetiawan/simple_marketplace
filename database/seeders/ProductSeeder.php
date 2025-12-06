@@ -14,7 +14,6 @@ class ProductSeeder extends Seeder
     {
         $faker = Faker::create();
 
-        // Get all categories
         $categories = Category::all();
 
         if ($categories->isEmpty()) {
@@ -29,7 +28,6 @@ class ProductSeeder extends Seeder
         foreach ($categories as $category) {
             $this->command->info("📦 Creating products for: {$category->name}");
 
-            // Generate 200 products per category
             for ($i = 1; $i <= 200; $i++) {
                 $productName = $this->generateProductName($category->name, $i, $faker);
 
@@ -41,14 +39,13 @@ class ProductSeeder extends Seeder
                     'price' => $this->generatePrice($category->name, $faker),
                     'stock' => $faker->numberBetween(0, 500),
                     'sku' => 'PRD-' . strtoupper(Str::random(8)),
-                    'image' => $this->generateImageUrl($category->name, $i), // ✅ Add image
+                    'image' => $this->generateImageUrl($category->name, $i),
                     'is_active' => $faker->boolean(95),
                     'is_featured' => $i <= 10 ?  true : $faker->boolean(5),
                 ]);
 
                 $totalCreated++;
 
-                // Progress indicator
                 if ($i % 50 == 0) {
                     $this->command->info("  ✓ Created {$i}/200 products");
                 }
@@ -63,10 +60,8 @@ class ProductSeeder extends Seeder
      */
     private function generateImageUrl(string $categoryName, int $index): string
     {
-        // Use Picsum (Lorem Picsum) for random images
-        $seed = md5($categoryName . $index); // Unique seed for consistent images
+        $seed = md5($categoryName . $index);
 
-        // Image categories mapped to Picsum topics
         $imageMapping = [
             'Electronics' => "https://picsum.photos/seed/{$seed}-tech/800/800",
             'Fashion' => "https://picsum.photos/seed/{$seed}-fashion/800/800",
@@ -83,7 +78,6 @@ class ProductSeeder extends Seeder
         return $imageMapping[$categoryName] ??  "https://picsum.photos/seed/{$seed}/800/800";
     }
 
-    // ...rest of your existing methods (generateProductName, generateDescription, generatePrice)
 
     private function generateProductName(string $categoryName, int $index, $faker): string
     {

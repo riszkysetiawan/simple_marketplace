@@ -14,39 +14,27 @@ class ShopController extends Controller
     public function index(Request $request)
     {
         $query = Product::where('is_active', true)->with('category');
-
-        // ✅ Featured filter
         if ($request->filled('featured')) {
             $query->where('is_featured', true);
         }
-
-        // Search
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
                     ->orWhere('description', 'like', '%' . $request->search . '%');
             });
         }
-
-        // Category filter
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
-
-        // Price range
         if ($request->filled('price_min')) {
             $query->where('price', '>=', $request->price_min);
         }
         if ($request->filled('price_max')) {
             $query->where('price', '<=', $request->price_max);
         }
-
-        // In stock only
         if ($request->filled('in_stock')) {
             $query->where('stock', '>', 0);
         }
-
-        // Sorting
         switch ($request->sort) {
             case 'price_asc':
                 $query->orderBy('price', 'asc');
@@ -63,8 +51,6 @@ class ShopController extends Controller
             default:
                 $query->latest();
         }
-
-        // ✅ PAGINATION: 10 items per page + keep query string
         $perPage = $request->get('per_page', 10);
         $products = $query->paginate($perPage)->withQueryString();
 
@@ -76,15 +62,10 @@ class ShopController extends Controller
      */
     public function show(Product $product)
     {
-        // Check if product is active
         if (!$product->is_active) {
             abort(404, 'Product not found');
         }
-
-        // Load relationships
         $product->load('category');
-
-        // Get related products from same category
         $relatedProducts = Product::where('is_active', true)
             ->where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
@@ -100,12 +81,9 @@ class ShopController extends Controller
      */
     public function category(Category $category)
     {
-        // Check if category is active
         if (!$category->is_active) {
             abort(404, 'Category not found');
         }
-
-        // Get products in this category
         $products = Product::where('is_active', true)
             ->where('category_id', $category->id)
             ->latest()
@@ -124,8 +102,6 @@ class ShopController extends Controller
         if (empty($query)) {
             return redirect()->route('shop.index');
         }
-
-        // Search in product name and description
         $products = Product::where('is_active', true)
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', '%' . $query . '%')
@@ -135,7 +111,6 @@ class ShopController extends Controller
             ->with('category')
             ->paginate(10)
             ->appends(['q' => $query]);
-
         return view('shop.search', compact('products', 'query'));
     }
 

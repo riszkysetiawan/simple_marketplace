@@ -36,7 +36,6 @@ class TransactionItem extends Model
         });
     }
 
-    // Relationships
     public function transaction()
     {
         return $this->belongsTo(Transaction::class);

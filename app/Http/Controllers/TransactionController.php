@@ -35,25 +35,20 @@ class TransactionController extends Controller
         try {
             $totalAmount = 0;
             $itemsData = [];
-
-            // Validate stock and calculate total
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
-
                 if ($product->stock < $item['quantity']) {
                     return response()->json([
                         'success' => false,
                         'message' => "Insufficient stock for {$product->name}.Available: {$product->stock}"
                     ], 400);
                 }
-
                 if (! $product->is_active) {
                     return response()->json([
                         'success' => false,
                         'message' => "{$product->name} is not available"
                     ], 400);
                 }
-
                 $subtotal = $product->price * $item['quantity'];
                 $totalAmount += $subtotal;
 
@@ -64,8 +59,6 @@ class TransactionController extends Controller
                     'subtotal' => $subtotal,
                 ];
             }
-
-            // Create transaction
             $transaction = Transaction::create([
                 'user_id' => auth()->id(),
                 'total_amount' => $totalAmount,
@@ -75,8 +68,6 @@ class TransactionController extends Controller
                 'phone' => $request->phone,
                 'notes' => $request->notes,
             ]);
-
-            // Create transaction items
             foreach ($itemsData as $itemData) {
                 TransactionItem::create([
                     'transaction_id' => $transaction->id,
@@ -85,30 +76,19 @@ class TransactionController extends Controller
                     'price' => $itemData['price'],
                     'subtotal' => $itemData['subtotal'],
                 ]);
-
-                // Update stock
                 $itemData['product']->decrement('stock', $itemData['quantity']);
             }
-
-            // Load relationships for email
             $transaction->load(['items.product', 'user']);
-
-            // ✅✅✅ SEND EMAIL NOTIFICATION ✅✅✅
             try {
                 Log::info('Attempting to send order email', [
                     'order_number' => $transaction->order_number,
                     'customer_email' => $transaction->user->email
                 ]);
-
-                // Send to customer
                 $transaction->user->notify(new NewOrderCreated($transaction));
                 Log::info('✅ Customer email sent successfully');
-
-                // Send to admins
                 $adminUsers = \App\Models\User::whereHas('roles', function ($query) {
                     $query->where('name', 'super_admin');
                 })->get();
-
                 if ($adminUsers->count() > 0) {
                     Notification::send($adminUsers, new NewOrderCreated($transaction));
                     Log::info('✅ Admin emails sent successfully', [
@@ -120,14 +100,9 @@ class TransactionController extends Controller
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);
-                // Don't fail transaction if email fails
             }
-
             DB::commit();
-
-            // Clear cart session
             session()->forget('cart');
-
             return response()->json([
                 'success' => true,
                 'message' => 'Order created successfully!  Check your email for details.',
@@ -139,7 +114,6 @@ class TransactionController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create order',
@@ -158,13 +132,9 @@ class TransactionController extends Controller
         $query = Transaction::with(['items.product'])
             ->where('user_id', auth()->id())
             ->latest();
-
-        // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
-
-        // Search
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('order_number', 'like', '%' . $request->search . '%')
@@ -173,18 +143,13 @@ class TransactionController extends Controller
                     });
             });
         }
-
         $transactions = $query->paginate(10);
-
-        // If AJAX request
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'data' => $transactions
             ]);
         }
-
-        // Web request
         return view('customer.transactions', compact('transactions'));
     }
 
@@ -193,17 +158,13 @@ class TransactionController extends Controller
      */
     public function show(Transaction $transaction)
     {
-        // Check ownership or admin
         $user = auth()->user();
         $isOwner = $transaction->user_id === $user->id;
         $isAdmin = $user->hasRole('super_admin');
-
         if (!$isOwner && ! $isAdmin) {
             abort(403, 'Unauthorized');
         }
-
         $transaction->load(['items.product', 'user']);
-
         if (request()->wantsJson()) {
             return response()->json([
                 'success' => true,
@@ -221,7 +182,6 @@ class TransactionController extends Controller
         if ($transaction->user_id !== auth()->id()) {
             abort(403, 'Unauthorized');
         }
-
         return view('customer.transactions.invoice', compact('transaction'));
     }
 
@@ -236,22 +196,14 @@ class TransactionController extends Controller
         if ($transaction->user_id !== auth()->id()) {
             abort(403, 'Unauthorized');
         }
-
         $pdf = PDF::loadView('invoices.transaction', compact('transaction'));
-
-        // Set paper size and margins
         $pdf->setPaper('A4');
         $pdf->setOption('margin-top', 10);
         $pdf->setOption('margin-bottom', 10);
         $pdf->setOption('margin-left', 10);
         $pdf->setOption('margin-right', 10);
-
-        // Set DPI for better quality
         $pdf->setOption('dpi', 300);
-
-        // Enable images
         $pdf->setOption('enable_local_file_access', true);
-
         return $pdf->download("Invoice-{$transaction->order_number}.pdf");
     }
 
@@ -264,7 +216,6 @@ class TransactionController extends Controller
         if ($transaction->user_id !== auth()->id()) {
             abort(403, 'Unauthorized');
         }
-
         return view('customer.transactions.print', compact('transaction'));
     }
 
@@ -342,22 +293,16 @@ class TransactionController extends Controller
             $oldStatus = $transaction->status;
 
             $transaction->update(['status' => 'cancelled']);
-
-            // Restore stock
             foreach ($transaction->items as $item) {
                 $item->product->increment('stock', $item->quantity);
             }
-
             $transaction->load(['items.product', 'user']);
-
             try {
                 $transaction->user->notify(new OrderStatusUpdated($transaction, $oldStatus));
             } catch (\Exception $e) {
                 Log::error('Failed to send cancel email: ' . $e->getMessage());
             }
-
             DB::commit();
-
             return response()->json([
                 'success' => true,
                 'message' => 'Transaction cancelled successfully',
@@ -365,7 +310,6 @@ class TransactionController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to cancel transaction',
@@ -386,13 +330,10 @@ class TransactionController extends Controller
             'phone' => 'sometimes|string|max:20',
             'notes' => 'nullable|string',
         ]);
-
         DB::beginTransaction();
-
         try {
             $oldStatus = $transaction->status;
             $updateData = $request->only(['status', 'payment_method', 'shipping_address', 'phone', 'notes']);
-
             if (isset($request->status)) {
                 if ($request->status === 'paid' && !$transaction->paid_at) {
                     $updateData['paid_at'] = now();
@@ -404,19 +345,13 @@ class TransactionController extends Controller
                     $updateData['completed_at'] = now();
                 }
             }
-
             $transaction->update($updateData);
-
-            // If cancelled, restore stock
             if (isset($request->status) && $request->status === 'cancelled' && $oldStatus !== 'cancelled') {
                 foreach ($transaction->items as $item) {
                     $item->product->increment('stock', $item->quantity);
                 }
             }
-
             $transaction->load(['items.product', 'user']);
-
-            // Send email if status changed
             if (isset($request->status) && $oldStatus !== $request->status) {
                 try {
                     $transaction->user->notify(new OrderStatusUpdated($transaction, $oldStatus));

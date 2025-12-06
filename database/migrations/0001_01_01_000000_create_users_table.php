@@ -12,11 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-
-            // ✅ Optional: direct relation to roles (for caching/performance)
-            // This is a denormalized field - Spatie uses model_has_roles pivot table
-            $table->unsignedBigInteger('id_roles')->nullable();
-
+            // $table->unsignedBigInteger('id_roles')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->string('google_id')->nullable()->unique();
@@ -26,15 +22,10 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->rememberToken();
             $table->timestamps();
-
-            // ✅ Indexes
-            $table->index('id_roles');
+            // $table->index('id_roles');
             $table->index('email');
             $table->index('google_id');
             $table->index('facebook_id');
-
-            // ❌ NO FOREIGN KEY (karena roles table belum exist saat migration ini run)
-            // Foreign key akan ditambahkan di migration terpisah setelah Spatie migration
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

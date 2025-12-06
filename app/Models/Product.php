@@ -22,14 +22,14 @@ class Product extends Model
         'images',
         'sku',
         'is_active',
-        'is_featured',  // ✅ Add this
+        'is_featured',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'stock' => 'integer',
         'is_active' => 'boolean',
-        'is_featured' => 'boolean',  // ✅ Add this
+        'is_featured' => 'boolean',
         'images' => 'array',
     ];
 
@@ -43,7 +43,6 @@ class Product extends Model
             ->useLogName('product');
     }
 
-    // ✅ Add scopes
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true);
@@ -58,8 +57,6 @@ class Product extends Model
     {
         return $query->where('stock', '>', 0);
     }
-
-    // Relationships
     public function category()
     {
         return $this->belongsTo(Category::class);

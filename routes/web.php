@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\SocialLoginController;
@@ -27,14 +28,34 @@ Route::get('/', function () {
 // ========================================
 // SOCIAL LOGIN ROUTES
 // ========================================
+Route::prefix('api')->middleware('api')->group(function () {
+    // Public auth routes
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/google/login', [AuthController::class, 'googleLogin']);
+    Route::post('/facebook/login', [AuthController::class, 'facebookLogin']);
 
+    // Protected routes (require token)
+    Route::middleware('auth:api')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/sso/login', [AuthController::class, 'ssoLogin']);
+    });
+
+    // SSO callback (public)
+    Route::post('/sso/callback', [AuthController::class, 'ssoCallback']);
+});
+
+
+// Web Routes - Social Login
+
+// Social Login Routes
 Route::prefix('auth')->name('auth.')->group(function () {
     Route::get('/google', [SocialLoginController::class, 'redirectToGoogle'])->name('google');
     Route::get('/google/callback', [SocialLoginController::class, 'handleGoogleCallback'])->name('google.callback');
     Route::get('/facebook', [SocialLoginController::class, 'redirectToFacebook'])->name('facebook');
     Route::get('/facebook/callback', [SocialLoginController::class, 'handleFacebookCallback'])->name('facebook.callback');
 });
-
 // ========================================
 // DASHBOARD ROUTES
 // ========================================
@@ -46,11 +67,6 @@ Route::get('/dashboard', function () {
         if ($user->hasRole('super_admin')) {
             return redirect()->intended('/admin');
         }
-
-        if ($user->hasRole('customer')) {
-            return redirect()->intended('/customer');
-        }
-
         return redirect('/');
     }
 
@@ -82,26 +98,16 @@ Route::middleware('auth')->prefix('profile')->name('profile.')->group(function (
 // ========================================
 
 Route::prefix('shop')->name('shop.')->group(function () {
-    // Main shop page with filters
     Route::get('/', [ShopController::class, 'index'])->name('index');
-
-    // Product detail
     Route::get('/products/{product:slug}', [ShopController::class, 'show'])->name('products.show');
-
-    // Category page
     Route::get('/category/{category:slug}', [ShopController::class, 'category'])->name('category');
-
-    // Search
     Route::get('/search', [ShopController::class, 'search'])->name('search');
-
-    // Featured products
     Route::get('/featured', [ShopController::class, 'featured'])->name('featured');
 });
 
 // ========================================
 // CART ROUTES
 // ========================================
-
 Route::middleware('auth')->prefix('cart')->name('cart.')->group(function () {
     Route::get('/', [CartController::class, 'index'])->name('index');
     Route::get('/get', [CartController::class, 'getCart'])->name('get');
@@ -123,20 +129,16 @@ Route::middleware('auth')->prefix('transactions')->name('transactions.')->group(
 // ========================================
 // CHECKOUT ROUTES
 // ========================================
-
 Route::middleware('auth')->prefix('checkout')->name('checkout.')->group(function () {
     Route::get('/', function () {
         return view('checkout.index');
     })->name('index');
-
     Route::post('/process', function () {
         return redirect()->route('checkout.success')->with('success', 'Order placed successfully!');
     })->name('process');
-
     Route::get('/success', function () {
         return view('checkout.success');
     })->name('success');
-
     Route::get('/cancel', function () {
         return redirect()->route('cart.index')->with('error', 'Checkout cancelled');
     })->name('cancel');
@@ -150,20 +152,16 @@ Route::middleware('auth')->prefix('wishlist')->name('wishlist.')->group(function
     Route::get('/', function () {
         return view('wishlist.index');
     })->name('index');
-
     Route::post('/add/{product}', function (\App\Models\Product $product) {
         return redirect()->back()->with('success', 'Added to wishlist!');
     })->name('add');
-
     Route::delete('/remove/{product}', function (\App\Models\Product $product) {
         return redirect()->back()->with('success', 'Removed from wishlist!');
     })->name('remove');
 });
-
 // ========================================
 // AUTHENTICATION ROUTES (Laravel Breeze)
 // ========================================
-
 require __DIR__ . '/auth.php';
 
 // ========================================

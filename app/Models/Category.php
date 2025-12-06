@@ -23,7 +23,6 @@ class Category extends Model
         'is_active' => 'boolean',
     ];
 
-    // ✅ Activity Log Configuration
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -33,8 +32,6 @@ class Category extends Model
             ->setDescriptionForEvent(fn(string $eventName) => "Category has been {$eventName}")
             ->useLogName('category');
     }
-
-    // Relationships
     public function products()
     {
         return $this->hasMany(Product::class);

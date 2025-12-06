@@ -15,8 +15,6 @@ class ProfileController extends Controller
     public function index()
     {
         $user = auth()->user()->load('roles');
-
-        // Get user statistics
         $stats = [
             'total_orders' => $user->transactions()->count(),
             'pending_orders' => $user->transactions()->where('status', 'pending')->count(),
@@ -35,16 +33,13 @@ class ProfileController extends Controller
     public function updateProfile(Request $request)
     {
         $user = auth()->user();
-
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
         ]);
-
         $user->update($validated);
-
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully'
@@ -59,18 +54,12 @@ class ProfileController extends Controller
         $request->validate([
             'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
-
         $user = auth()->user();
-
-        // Delete old avatar
         if ($user->avatar && Storage::exists('public/' . $user->avatar)) {
             Storage::delete('public/' . $user->avatar);
         }
-
-        // Store new avatar
         $path = $request->file('avatar')->store('avatars', 'public');
         $user->update(['avatar' => $path]);
-
         return response()->json([
             'success' => true,
             'message' => 'Avatar updated successfully',
@@ -87,21 +76,16 @@ class ProfileController extends Controller
             'current_password' => 'required',
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
-
         $user = auth()->user();
-
-        // Check current password
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Current password is incorrect'
             ], 422);
         }
-
         $user->update([
             'password' => Hash::make($request->password)
         ]);
-
         return response()->json([
             'success' => true,
             'message' => 'Password updated successfully'
@@ -116,7 +100,6 @@ class ProfileController extends Controller
         $request->validate([
             'password' => 'required'
         ]);
-
         $user = auth()->user();
 
         if (! Hash::check($request->password, $user->password)) {
@@ -125,16 +108,11 @@ class ProfileController extends Controller
                 'message' => 'Password is incorrect'
             ], 422);
         }
-
-        // Delete avatar
         if ($user->avatar && Storage::exists('public/' . $user->avatar)) {
             Storage::delete('public/' . $user->avatar);
         }
-
-        // Logout and delete
         auth()->logout();
         $user->delete();
-
         return response()->json([
             'success' => true,
             'message' => 'Account deleted successfully',

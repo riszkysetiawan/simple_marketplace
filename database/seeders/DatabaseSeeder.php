@@ -14,22 +14,18 @@ class DatabaseSeeder extends Seeder
         $this->command->info('🌱 Starting database seeding...');
         $this->command->newLine();
 
-        // 1. Roles & Permissions
         $this->command->info('📌 Step 1: Creating roles & permissions...');
         $this->call(RoleSeeder::class);
         $this->command->newLine();
 
-        // 2. Users
         $this->command->info('📌 Step 2: Creating users...');
         $this->call(UserSeeder::class);
         $this->command->newLine();
 
-        // 3.Categories
         $this->command->info('📌 Step 3: Creating categories...');
         $this->call(CategorySeeder::class);
         $this->command->newLine();
 
-        // 4.Products (2000 products - 200 per category)
         $this->command->info('📌 Step 4: Creating products (this may take a while)...');
         $startTime = microtime(true);
         $this->call(ProductSeeder::class);
@@ -38,7 +34,6 @@ class DatabaseSeeder extends Seeder
         $this->command->info("⏱️  Products created in {$executionTime} seconds");
         $this->command->newLine();
 
-        // Summary
         $this->command->info('✅ Database seeding completed successfully!');
         $this->command->newLine();
         $this->command->info('📊 Summary:');

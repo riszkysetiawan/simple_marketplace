@@ -26,13 +26,9 @@ class PasswordResetLinkController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
         ]);
-
-        // Send password reset link
         $status = Password::sendResetLink(
             $request->only('email')
         );
-
-        // ✅ Check if AJAX request
         if ($request->wantsJson() || $request->ajax()) {
             if ($status === Password::RESET_LINK_SENT) {
                 return response()->json([
@@ -40,7 +36,6 @@ class PasswordResetLinkController extends Controller
                     'message' => __($status)
                 ]);
             }
-
             return response()->json([
                 'success' => false,
                 'message' => __($status),
@@ -49,7 +44,6 @@ class PasswordResetLinkController extends Controller
                 ]
             ], 422);
         }
-
         return $status === Password::RESET_LINK_SENT
             ? back()->with(['status' => __($status)])
             : back()->withErrors(['email' => __($status)]);

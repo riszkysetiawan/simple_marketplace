@@ -17,12 +17,9 @@ return new class extends Migration
             $table->decimal('subtotal', 12, 2);
             $table->timestamps();
 
-            // Composite index untuk query optimization
             $table->index(['transaction_id', 'product_id']);
             $table->index('transaction_id');
             $table->index('product_id');
-
-            // Unique constraint untuk prevent duplicate items
             $table->unique(['transaction_id', 'product_id'], 'transaction_product_unique');
         });
     }

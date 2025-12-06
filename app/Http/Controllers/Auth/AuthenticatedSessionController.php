@@ -24,12 +24,30 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Autentikasi pengguna
         $request->authenticate();
 
+        // Regenerasi session
         $request->session()->regenerate();
 
-        return redirect()->intended(route('home'))
-            ->with('success', 'Welcome back, ' . auth()->user()->name . '!');
+        // Ambil pengguna yang terautentikasi
+        $user = auth()->user();
+
+        // Pengalihan berdasarkan role
+        if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+            return redirect('/admin')
+                ->with('success', 'Welcome back, Admin ' . $user->name . '!');
+        }
+
+        // Jika role adalah 'customer', arahkan ke home
+        if ($user->hasRole('customer')) {
+            return redirect()->route('home')
+                ->with('success', 'Welcome back, ' . $user->name . '!');
+        }
+
+        // Pengalihan default jika tidak ada role yang sesuai
+        return redirect()->route('home')
+            ->with('success', 'Welcome back, ' . $user->name . '!');
     }
 
     /**
@@ -46,7 +64,6 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('home')
-            ->with('logout_success', true)
-            ->with('success', 'Goodbye, ' . $userName . '!  See you soon.');
+            ->with('success', 'Goodbye, ' . $userName . '! See you soon.');
     }
 }

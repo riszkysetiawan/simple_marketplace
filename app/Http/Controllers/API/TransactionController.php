@@ -22,25 +22,18 @@ class TransactionController extends Controller
     public function index(Request $request)
     {
         $query = Transaction::with(['items.product', 'user']);
-
-        // Admin can see all, customer only their own
         if (! $request->user()->hasRole('super_admin')) {
             $query->where('user_id', $request->user()->id);
         }
-
-        // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
-
-        // Filter by date
         if ($request->has('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
         if ($request->has('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-
         $perPage = $request->get('per_page', 15);
         $transactions = $query->latest()->paginate($perPage);
 
@@ -79,8 +72,6 @@ class TransactionController extends Controller
         try {
             $totalAmount = 0;
             $itemsData = [];
-
-            // Validate and calculate
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
 
@@ -108,8 +99,6 @@ class TransactionController extends Controller
                     'subtotal' => $subtotal,
                 ];
             }
-
-            // Create transaction
             $transaction = Transaction::create([
                 'user_id' => $request->user()->id,
                 'total_amount' => $totalAmount,
@@ -119,8 +108,6 @@ class TransactionController extends Controller
                 'phone' => $request->phone,
                 'notes' => $request->notes,
             ]);
-
-            // Create items
             foreach ($itemsData as $itemData) {
                 TransactionItem::create([
                     'transaction_id' => $transaction->id,
@@ -132,10 +119,7 @@ class TransactionController extends Controller
 
                 $itemData['product']->decrement('stock', $itemData['quantity']);
             }
-
             $transaction->load(['items.product', 'user']);
-
-            // ✅ Send email notification
             try {
                 $transaction->user->notify(new NewOrderCreated($transaction));
 

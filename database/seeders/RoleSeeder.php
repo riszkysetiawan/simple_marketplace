@@ -10,10 +10,8 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        // Reset cache
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // ===== CREATE ROLES =====
 
         $superAdmin = Role::firstOrCreate([
             'name' => 'super_admin',
@@ -27,15 +25,12 @@ class RoleSeeder extends Seeder
 
         $this->command->info('✅ Created roles');
 
-        // ===== ASSIGN PERMISSIONS =====
 
-        // Super Admin: ALL permissions
         $allPermissions = Permission::all();
         $superAdmin->syncPermissions($allPermissions);
 
         $this->command->info("✅ Super admin has {$allPermissions->count()} permissions");
 
-        // Customer: Read-only permissions
         $customerPermissions = Permission::where('name', 'like', 'view%')->get();
         $customer->syncPermissions($customerPermissions);
 

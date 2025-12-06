@@ -6,31 +6,30 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('oauth_refresh_tokens', function (Blueprint $table) {
             $table->char('id', 80)->primary();
-            $table->char('access_token_id', 80);
-            $table->boolean('revoked')->default(false);
+            $table->char('access_token_id', 80)->index();
+            $table->boolean('revoked');
             $table->dateTime('expires_at')->nullable();
-
-            // Foreign key
-            $table->foreign('access_token_id')
-                ->references('id')
-                ->on('oauth_access_tokens')
-                ->onDelete('cascade');
-
-            // Indexes
-            $table->index('revoked');
-            $table->index('expires_at');
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('oauth_refresh_tokens');
     }
 
+    /**
+     * Get the migration connection name.
+     */
     public function getConnection(): ?string
     {
         return $this->connection ?? config('passport.connection');

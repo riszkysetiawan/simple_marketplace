@@ -26,7 +26,7 @@ class CustomerPanelProvider extends PanelProvider
         return $panel
             ->id('customer')
             ->path('customer')
-            ->login()  // ✅ Enable login
+            ->login()
             ->brandName('Customer Portal')
             ->brandLogo(asset('images/logo.png'))
             ->favicon(asset('favicon.ico'))
@@ -85,12 +85,10 @@ class CustomerPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop();
     }
 
-    // ✅ Register custom logout response
     public function register(): void
     {
         parent::register();
 
-        // Override Filament's logout response
         $this->app->bind(LogoutResponse::class, \App\Http\Responses\CustomLogoutResponse::class);
     }
 }

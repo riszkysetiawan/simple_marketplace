@@ -33,7 +33,6 @@ class Transaction extends Model
         'completed_at' => 'datetime',
     ];
 
-    // ✅ Auto-generate order number
     protected static function boot()
     {
         parent::boot();
@@ -45,7 +44,6 @@ class Transaction extends Model
         });
     }
 
-    // ✅ Activity Log Configuration
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -56,7 +54,6 @@ class Transaction extends Model
             ->useLogName('transaction');
     }
 
-    // Relationships
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -67,7 +64,6 @@ class Transaction extends Model
         return $this->hasMany(TransactionItem::class);
     }
 
-    // ✅ Helper methods
     public function isPending(): bool
     {
         return $this->status === 'pending';
@@ -88,7 +84,6 @@ class Transaction extends Model
         return $this->status === 'cancelled';
     }
 
-    // ✅ Calculate total from items
     public function calculateTotal()
     {
         $this->total_amount = $this->items->sum('subtotal');

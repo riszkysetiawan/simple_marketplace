@@ -10,10 +10,8 @@ class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // ✅ Create roles with Shield naming convention
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         $customer = Role::firstOrCreate(['name' => 'customer', 'guard_name' => 'web']);
 

@@ -35,8 +35,6 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->authGuard('web')
-
-            // ✅ Auto-discover resources
             ->discoverResources(
                 in: app_path('Filament/Resources'),
                 for: 'App\\Filament\\Resources'
@@ -60,7 +58,6 @@ class AdminPanelProvider extends PanelProvider
                 Widgets\AccountWidget::class,
             ])
 
-            // ✅ Add Shield plugin
             ->plugin(\BezhanSalleh\FilamentShield\FilamentShieldPlugin::make())
 
             ->middleware([
@@ -84,12 +81,10 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop();
     }
 
-    // ✅ Register custom logout response
     public function register(): void
     {
         parent::register();
 
-        // Override Filament's logout response
         $this->app->bind(LogoutResponse::class, \App\Http\Responses\CustomLogoutResponse::class);
     }
 }

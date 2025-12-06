@@ -28,31 +28,23 @@ class RoleUserSeeder extends Seeder
 
         $this->command->info('✅ Created 2 roles: super_admin, customer');
 
-        // ===== CREATE PERMISSIONS =====
 
         $permissions = [
-            // Product
             'view_any_product',
             'view_product',
             'create_product',
             'update_product',
             'delete_product',
-
-            // Category
             'view_any_category',
             'view_category',
             'create_category',
             'update_category',
             'delete_category',
-
-            // Transaction
             'view_any_transaction',
             'view_transaction',
             'create_transaction',
             'update_transaction',
             'delete_transaction',
-
-            // User
             'view_any_user',
             'view_user',
             'create_user',
@@ -69,13 +61,9 @@ class RoleUserSeeder extends Seeder
 
         $this->command->info('✅ Created ' . count($permissions) . ' permissions');
 
-        // ===== ASSIGN PERMISSIONS TO ROLES =====
-
-        // Super Admin: ALL permissions
         $superAdmin->syncPermissions(Permission::all());
         $this->command->info('✅ Super Admin has all permissions');
 
-        // Customer: Read-only permissions
         $customer->syncPermissions([
             'view_any_product',
             'view_product',
@@ -86,12 +74,8 @@ class RoleUserSeeder extends Seeder
         ]);
         $this->command->info('✅ Customer has read permissions');
 
-        // ===== ASSIGN ROLES TO USERS =====
-
-        // Option 1: Assign by email (manual)
         $adminEmails = [
             'admin@example.com',
-            // Add more admin emails here
         ];
 
         foreach ($adminEmails as $email) {
@@ -102,14 +86,12 @@ class RoleUserSeeder extends Seeder
             }
         }
 
-        // Option 2: All other users = customer
         $otherUsers = User::whereNotIn('email', $adminEmails)->get();
         foreach ($otherUsers as $user) {
             $user->syncRoles(['customer']);
             $this->command->info("✅ {$user->email} → customer");
         }
 
-        // ===== SUMMARY =====
 
         $this->command->info("\n=== SUMMARY ===");
         $this->command->info("Super Admins: " . User::role('super_admin')->count());

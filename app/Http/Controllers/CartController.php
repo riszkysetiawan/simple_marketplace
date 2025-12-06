@@ -14,35 +14,24 @@ class CartController extends Controller
     {
         return view('cart.index');
     }
-
-    /**
-     * Add product to cart (AJAX)
-     */
     public function add(Request $request, Product $product)
     {
         $request->validate([
             'quantity' => 'required|integer|min:1|max:' . $product->stock
         ]);
-
-        // Check if product is active and has stock
         if (! $product->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'Product is not available'
             ], 400);
         }
-
         if ($product->stock < $request->quantity) {
             return response()->json([
                 'success' => false,
                 'message' => 'Insufficient stock. Available: ' . $product->stock
             ], 400);
         }
-
-        // Get cart from session
         $cart = session()->get('cart', []);
-
-        // Check if product already in cart
         if (isset($cart[$product->id])) {
             $cart[$product->id]['quantity'] += $request->quantity;
         } else {
@@ -55,10 +44,7 @@ class CartController extends Controller
                 'image' => $product->image,
             ];
         }
-
-        // Save to session
         session()->put('cart', $cart);
-
         return response()->json([
             'success' => true,
             'message' => 'Product added to cart successfully',
@@ -66,10 +52,6 @@ class CartController extends Controller
             'data' => $cart[$product->id]
         ]);
     }
-
-    /**
-     * Update cart item quantity
-     */
     public function update(Request $request, $productId)
     {
         $request->validate([
@@ -84,8 +66,6 @@ class CartController extends Controller
                 'message' => 'Product not found in cart'
             ], 404);
         }
-
-        // Check stock
         $product = Product::find($productId);
         if ($product && $product->stock < $request->quantity) {
             return response()->json([
@@ -93,7 +73,6 @@ class CartController extends Controller
                 'message' => 'Insufficient stock.Available: ' . $product->stock
             ], 400);
         }
-
         $cart[$productId]['quantity'] = $request->quantity;
         session()->put('cart', $cart);
 
@@ -103,10 +82,6 @@ class CartController extends Controller
             'data' => $cart[$productId]
         ]);
     }
-
-    /**
-     * Remove item from cart
-     */
     public function remove($productId)
     {
         $cart = session()->get('cart', []);
@@ -117,7 +92,6 @@ class CartController extends Controller
                 'message' => 'Product not found in cart'
             ], 404);
         }
-
         unset($cart[$productId]);
         session()->put('cart', $cart);
 

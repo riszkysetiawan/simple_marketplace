@@ -15,42 +15,29 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::with('category')->where('is_active', true);
-
-        // Search
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
                     ->orWhere('description', 'like', '%' . $request->search . '%');
             });
         }
-
-        // Filter by category
         if ($request->has('category_id')) {
             $query->where('category_id', $request->category_id);
         }
-
-        // Filter by price range
         if ($request->has('price_min')) {
             $query->where('price', '>=', $request->price_min);
         }
         if ($request->has('price_max')) {
             $query->where('price', '<=', $request->price_max);
         }
-
-        // Filter by featured
         if ($request->has('featured')) {
             $query->where('is_featured', true);
         }
-
-        // Sort
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
-
-        // Pagination
         $perPage = $request->get('per_page', 15);
         $products = $query->paginate($perPage);
-
         return response()->json([
             'success' => true,
             'message' => 'Products retrieved successfully',

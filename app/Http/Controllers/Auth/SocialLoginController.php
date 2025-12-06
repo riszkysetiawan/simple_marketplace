@@ -10,124 +10,91 @@ use Exception;
 
 class SocialLoginController extends Controller
 {
+    /**
+     * Redirect to Google
+     */
     public function redirectToGoogle()
     {
         return Socialite::driver('google')->redirect();
     }
 
+    /**
+     * Handle Google Callback
+     */
     public function handleGoogleCallback()
     {
         try {
             $googleUser = Socialite::driver('google')->user();
 
-            $user = User::where('email', $googleUser->getEmail())->first();
+            \Log::info('Google User:', (array) $googleUser);
 
-            if ($user) {
-                if (! $user->google_id) {
-                    $user->update([
-                        'google_id' => $googleUser->getId(),
-                        'avatar' => $googleUser->getAvatar(),
-                    ]);
-                }
+            // ✅ Find or create user
+            $user = User::findOrCreateFromGoogle($googleUser);
 
-                if (! $user->hasAnyRole(['super_admin', 'customer'])) {
-                    $user->assignRole('customer');
-                }
-            } else {
-                $user = User::create([
-                    'name' => $googleUser->getName(),
-                    'email' => $googleUser->getEmail(),
-                    'google_id' => $googleUser->getId(),
-                    'avatar' => $googleUser->getAvatar(),
-                    'email_verified_at' => now(),
-                    'password' => null,
-                ]);
-
+            // ✅ Assign role jika belum ada
+            if (!$user->hasRole('customer')) {
                 $user->assignRole('customer');
             }
 
+            // ✅ Login user
             Auth::login($user, true);
 
-            if ($user->hasRole('super_admin')) {
-                return redirect()->intended('/admin');
+            // ✅ Redirect berdasarkan role
+            if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+                return redirect()->intended('/admin')
+                    ->with('success', 'Welcome back, Admin ' . $user->name . '!');
             }
 
-            return redirect()->intended('/customer');
+            return redirect()->intended('/home')
+                ->with('success', 'Welcome back, ' . $user->name . '!');
         } catch (Exception $e) {
             \Log::error('Google OAuth Error: ' . $e->getMessage());
-
-            return redirect('/login')->with('error', 'Failed to login with Google.');
+            \Log::error('Stack: ' . $e->getTraceAsString());
+            return redirect('/login')->with('error', 'Failed to login with Google: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Redirect to Facebook
+     */
     public function redirectToFacebook()
     {
-        // ✅ FIX: Remove ->scopes(['email']) or use valid scopes
-        return Socialite::driver('facebook')
-            ->redirect();
+        return Socialite::driver('facebook')->redirect();
     }
 
+    /**
+     * Handle Facebook Callback
+     */
     public function handleFacebookCallback()
     {
         try {
             $facebookUser = Socialite::driver('facebook')->user();
 
-            // ✅ Handle case where Facebook doesn't provide email
-            $email = $facebookUser->getEmail();
+            \Log::info('Facebook User:', (array) $facebookUser);
 
-            if (! $email) {
-                // Generate fallback email from Facebook ID
-                $email = $facebookUser->getId() . '@facebook.com';
+            // ✅ Find or create user
+            $user = User::findOrCreateFromFacebook($facebookUser);
 
-                \Log::warning('Facebook user has no email', [
-                    'facebook_id' => $facebookUser->getId(),
-                    'name' => $facebookUser->getName(),
-                ]);
-            }
-
-            $user = User::where('facebook_id', $facebookUser->getId())->first();
-
-            if (! $user) {
-                $user = User::where('email', $email)->first();
-            }
-
-            if ($user) {
-                // Update Facebook ID if not set
-                if (! $user->facebook_id) {
-                    $user->update([
-                        'facebook_id' => $facebookUser->getId(),
-                        'avatar' => $facebookUser->getAvatar(),
-                    ]);
-                }
-
-                if (! $user->hasAnyRole(['super_admin', 'customer'])) {
-                    $user->assignRole('customer');
-                }
-            } else {
-                // Create new user
-                $user = User::create([
-                    'name' => $facebookUser->getName(),
-                    'email' => $email,
-                    'facebook_id' => $facebookUser->getId(),
-                    'avatar' => $facebookUser->getAvatar(),
-                    'email_verified_at' => now(),
-                    'password' => null,
-                ]);
-
+            // ✅ Assign role jika belum ada
+            if (!$user->hasRole('customer')) {
                 $user->assignRole('customer');
             }
 
+            // ✅ Login user
             Auth::login($user, true);
 
-            if ($user->hasRole('super_admin')) {
-                return redirect()->intended('/admin');
+            // ✅ Redirect berdasarkan role
+            if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
+                return redirect()->intended('/admin')
+                    ->with('success', 'Welcome back, Admin ' . $user->name . '!');
             }
 
-            return redirect()->intended('/customer');
+            return redirect()->intended('/home')
+                ->with('success', 'Welcome back, ' . $user->name . '!');
         } catch (Exception $e) {
             \Log::error('Facebook OAuth Error: ' . $e->getMessage());
-
-            return redirect('/login')->with('error', 'Failed to login with Facebook. Please try another method.');
+            \Log::error('Stack: ' . $e->getTraceAsString());
+            return redirect('/login')->with('error', 'Failed to login with Facebook: ' . $e->getMessage());
         }
     }
 }

@@ -19,7 +19,6 @@ class NewOrderCreated extends Notification
     {
         $this->transaction = $transaction;
 
-        // ✅ Debug log
         Log::info('NewOrderCreated notification created', [
             'order_number' => $transaction->order_number,
             'user_email' => $transaction->user->email
@@ -33,7 +32,6 @@ class NewOrderCreated extends Notification
 
     public function toMail($notifiable): MailMessage
     {
-        // ✅ Debug log
         Log::info('Sending email to: ' . $notifiable->email);
 
         try {

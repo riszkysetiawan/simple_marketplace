@@ -23,7 +23,6 @@ return new class extends Migration
             $table->boolean('is_featured')->default(false);
             $table->timestamps();
 
-            // Indexes
             $table->index('name');
             $table->index('slug');
             $table->index('sku');
