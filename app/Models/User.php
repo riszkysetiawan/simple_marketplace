@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -44,14 +45,16 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
-    // ===== DIRECT RELATION =====
-
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
     public function role()
     {
         return $this->belongsTo(\Spatie\Permission\Models\Role::class, 'id_roles', 'id');
     }
 
-    // ===== HELPER METHODS =====
+
 
     public function isSuperAdmin(): bool
     {
@@ -63,18 +66,15 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasRole('customer');
     }
 
-    // ===== FILAMENT PANEL ACCESS =====
 
     public function canAccessPanel(Panel $panel): bool
     {
         $panelId = $panel->getId();
 
-        // Admin panel - only super_admin
         if ($panelId === 'admin') {
             return $this->hasRole('super_admin');
         }
 
-        // Customer panel - only customer
         if ($panelId === 'customer') {
             return $this->hasRole('customer');
         }
@@ -82,7 +82,6 @@ class User extends Authenticatable implements FilamentUser
         return false;
     }
 
-    // ===== RELATIONSHIPS =====
 
     public function transactions()
     {

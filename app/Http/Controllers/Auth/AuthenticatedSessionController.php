@@ -7,7 +7,6 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -23,51 +22,49 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request)
     {
-        $request->authenticate();
-        $request->session()->regenerate();
+        try {
+            $request->authenticate();
+            $request->session()->regenerate();
 
-        $user = Auth::user();
+            $user = Auth::user();
 
-        // ✅ CLEAR CACHE
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            // Determine redirect URL
+            if ($user->hasRole('super_admin')) {
+                $redirectUrl = url('/admin');
+            } elseif ($user->hasRole('customer')) {
+                $redirectUrl = url('/customer');
+            } else {
+                $redirectUrl = route('dashboard');
+            }
 
-        // ✅ DETAILED LOGGING
-        Log::info('==========================================');
-        Log::info('LOGIN ATTEMPT');
-        Log::info('==========================================');
-        Log::info('User ID: ' . $user->id);
-        Log::info('Email: ' . $user->email);
-        Log::info('Roles (getRoleNames): ' . $user->getRoleNames()->implode(', '));
-        Log::info('Has super_admin: ' . ($user->hasRole('super_admin') ? 'YES' : 'NO'));
-        Log::info('Has customer: ' . ($user->hasRole('customer') ? 'YES' : 'NO'));
-        Log::info('Is super admin: ' . ($user->isSuperAdmin() ? 'YES' : 'NO'));
-        Log::info('Is customer: ' . ($user->isCustomer() ?  'YES' : 'NO'));
+            // ✅ Check if AJAX request
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'redirect' => $redirectUrl,
+                    'user' => [
+                        'name' => $user->name,
+                        'email' => $user->email,
+                    ]
+                ]);
+            }
 
-        // ✅ CHECK 1: Super Admin (FIRST PRIORITY)
-        if ($user->hasRole('super_admin')) {
-            Log::info('✅ DECISION: Redirect to /admin (super_admin role detected)');
-            Log::info('==========================================');
-            return redirect('/admin');
+            return redirect()->intended($redirectUrl);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // ✅ Return JSON for AJAX requests
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The provided credentials are incorrect.',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+
+            throw $e;
         }
-
-        // ✅ CHECK 2: Customer (SECOND PRIORITY)
-        if ($user->hasRole('customer')) {
-            Log::info('✅ DECISION: Redirect to /customer (customer role detected)');
-            Log::info('==========================================');
-            return redirect('/customer');
-        }
-
-        // ✅ NO VALID ROLE
-        Log::warning('❌ DECISION: No valid role - logout user');
-        Log::info('==========================================');
-
-        Auth::logout();
-
-        return redirect()
-            ->route('login')
-            ->withErrors(['email' => 'No valid role assigned to your account.Please contact support.']);
     }
 
     /**
@@ -80,6 +77,6 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        return redirect('/');
     }
 }

@@ -5,10 +5,15 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Login - {{ config('app.name') }}</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+        <!-- ✅ SweetAlert2 -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
         <style>
+            /* ... your existing styles ...*/
             :root {
                 --primary-color: #4f46e5;
                 --primary-dark: #4338ca;
@@ -141,11 +146,6 @@
                 font-size: 0.875rem;
             }
 
-            .alert {
-                border-radius: 8px;
-                border: none;
-            }
-
             .form-check-input:checked {
                 background-color: var(--primary-color);
                 border-color: var(--primary-color);
@@ -160,6 +160,33 @@
             .link-primary:hover {
                 color: var(--primary-dark);
                 text-decoration: underline;
+            }
+
+            /* ✅ Loading Spinner */
+            .btn-loading {
+                position: relative;
+                pointer-events: none;
+            }
+
+            .btn-loading::after {
+                content: "";
+                position: absolute;
+                width: 16px;
+                height: 16px;
+                top: 50%;
+                left: 50%;
+                margin-left: -8px;
+                margin-top: -8px;
+                border: 2px solid #ffffff;
+                border-radius: 50%;
+                border-top-color: transparent;
+                animation: spinner 0.6s linear infinite;
+            }
+
+            @keyframes spinner {
+                to {
+                    transform: rotate(360deg);
+                }
             }
 
             @media (max-width: 576px) {
@@ -192,24 +219,8 @@
 
                     <!-- Body -->
                     <div class="login-body">
-                        <!-- Session Status -->
-                        @if (session('status'))
-                            <div class="alert alert-success" role="alert">
-                                <i class="bi bi-check-circle-fill me-2"></i>
-                                {{ session('status') }}
-                            </div>
-                        @endif
-
-                        <!-- Error Messages -->
-                        @if (session('error'))
-                            <div class="alert alert-danger" role="alert">
-                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                {{ session('error') }}
-                            </div>
-                        @endif
-
-                        <!-- Login Form -->
-                        <form method="POST" action="{{ route('login') }}">
+                        <!-- ✅ Login Form with AJAX -->
+                        <form id="loginForm">
                             @csrf
 
                             <!-- Email -->
@@ -217,12 +228,9 @@
                                 <label for="email" class="form-label">
                                     <i class="bi bi-envelope"></i> Email Address
                                 </label>
-                                <input type="email" class="form-control @error('email') is-invalid @enderror"
-                                    id="email" name="email" value="{{ old('email') }}"
+                                <input type="email" class="form-control" id="email" name="email"
                                     placeholder="Enter your email" required autofocus>
-                                @error('email')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <div class="invalid-feedback"></div>
                             </div>
 
                             <!-- Password -->
@@ -230,11 +238,9 @@
                                 <label for="password" class="form-label">
                                     <i class="bi bi-lock"></i> Password
                                 </label>
-                                <input type="password" class="form-control @error('password') is-invalid @enderror"
-                                    id="password" name="password" placeholder="Enter your password" required>
-                                @error('password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <input type="password" class="form-control" id="password" name="password"
+                                    placeholder="Enter your password" required>
+                                <div class="invalid-feedback"></div>
                             </div>
 
                             <!-- Remember Me & Forgot Password -->
@@ -246,17 +252,15 @@
                                     </label>
                                 </div>
 
-                                @if (Route::has('password.request'))
-                                    <a href="{{ route('password.request') }}" class="link-primary">
-                                        Forgot Password?
-                                    </a>
-                                @endif
+                                <a href="{{ route('password.request') }}" class="link-primary">
+                                    Forgot Password?
+                                </a>
                             </div>
 
                             <!-- Submit Button -->
-                            <button type="submit" class="btn btn-primary w-100 mb-3">
+                            <button type="submit" class="btn btn-primary w-100 mb-3" id="loginBtn">
                                 <i class="bi bi-box-arrow-in-right me-2"></i>
-                                Sign In
+                                <span>Sign In</span>
                             </button>
 
                             <!-- Register Link -->
@@ -275,7 +279,6 @@
 
                         <!-- Social Login Buttons -->
                         <div class="row g-2">
-                            <!-- Google -->
                             <div class="col-6">
                                 <a href="{{ route('auth.google') }}" class="btn btn-social btn-google w-100">
                                     <svg width="20" height="20" viewBox="0 0 24 24">
@@ -292,7 +295,6 @@
                                 </a>
                             </div>
 
-                            <!-- Facebook -->
                             <div class="col-6">
                                 <a href="{{ route('auth.facebook') }}" class="btn btn-social btn-facebook w-100">
                                     <svg width="20" height="20" fill="#1877F2" viewBox="0 0 24 24">
@@ -317,6 +319,126 @@
 
         <!-- Bootstrap 5 JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+        <!-- ✅ AJAX Login Script -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const loginForm = document.getElementById('loginForm');
+                const loginBtn = document.getElementById('loginBtn');
+                const emailInput = document.getElementById('email');
+                const passwordInput = document.getElementById('password');
+
+                // Show session status if exists
+                @if (session('status'))
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: '{{ session('status') }}',
+                        confirmButtonColor: '#4f46e5',
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                @endif
+
+                @if (session('error'))
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error! ',
+                        text: '{{ session('error') }}',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                @endif
+
+                loginForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    // Clear previous errors
+                    document.querySelectorAll('.is-invalid').forEach(el => {
+                        el.classList.remove('is-invalid');
+                    });
+
+                    // Show loading
+                    loginBtn.disabled = true;
+                    loginBtn.classList.add('btn-loading');
+                    loginBtn.querySelector('span').style.opacity = '0';
+
+                    // Get form data
+                    const formData = new FormData(loginForm);
+
+                    try {
+                        const response = await fetch('{{ route('login') }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                                    .content,
+                                'Accept': 'application/json',
+                            },
+                            body: formData
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            // Success
+                            await Swal.fire({
+                                icon: 'success',
+                                title: 'Login Successful!',
+                                text: 'Redirecting to dashboard...',
+                                confirmButtonColor: '#4f46e5',
+                                timer: 2000,
+                                timerProgressBar: true,
+                                showConfirmButton: false
+                            });
+
+                            // Redirect
+                            window.location.href = data.redirect || '{{ route('dashboard') }}';
+                        } else {
+                            // Error
+                            if (data.errors) {
+                                // Validation errors
+                                let errorMessage = '';
+                                Object.keys(data.errors).forEach(key => {
+                                    const input = document.getElementById(key);
+                                    if (input) {
+                                        input.classList.add('is-invalid');
+                                        input.nextElementSibling.textContent = data.errors[key][0];
+                                    }
+                                    errorMessage += data.errors[key][0] + '\n';
+                                });
+
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Validation Error',
+                                    text: errorMessage,
+                                    confirmButtonColor: '#4f46e5'
+                                });
+                            } else {
+                                // General error
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Login Failed',
+                                    text: data.message || 'Invalid credentials. Please try again.',
+                                    confirmButtonColor: '#4f46e5'
+                                });
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Something went wrong.Please try again.',
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    } finally {
+                        // Hide loading
+                        loginBtn.disabled = false;
+                        loginBtn.classList.remove('btn-loading');
+                        loginBtn.querySelector('span').style.opacity = '1';
+                    }
+                });
+            });
+        </script>
     </body>
 
     </html>
