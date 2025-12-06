@@ -8,7 +8,6 @@
     <title>Checkout - {{ config('app.name') }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- ✅ SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
@@ -55,28 +54,6 @@
             margin-right: 15px;
         }
 
-        .quantity-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .quantity-control button {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .quantity-control input {
-            width: 60px;
-            text-align: center;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-        }
-
         .btn-checkout {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             border: none;
@@ -98,10 +75,23 @@
             padding: 20px;
             border-radius: 8px;
         }
+
+        .empty-cart {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-cart i {
+            font-size: 80px;
+            color: #d1d5db;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 
 <body>
+    @include('partials.navbar')
+
     <div class="checkout-container">
         <h1 class="mb-4"><i class="bi bi-cart-check me-2"></i> Checkout</h1>
 
@@ -112,8 +102,10 @@
                     <div class="card-header">
                         <h5 class="mb-0"><i class="bi bi-bag me-2"></i> Your Cart</h5>
                     </div>
-                    <div class="card-body" id="cartItems">
-                        <!-- Cart items will be loaded here -->
+                    <div class="card-body p-0" id="cartItems">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -168,12 +160,16 @@
                                 </div>
                                 <div class="d-flex justify-content-between mb-2">
                                     <span>Shipping:</span>
-                                    <span class="fw-bold">FREE</span>
+                                    <span class="fw-bold text-success">FREE</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Tax (11%):</span>
+                                    <span class="fw-bold" id="tax">Rp 0</span>
                                 </div>
                                 <hr>
                                 <div class="d-flex justify-content-between">
-                                    <h5>Total:</h5>
-                                    <h5 class="text-primary" id="totalAmount">Rp 0</h5>
+                                    <h5 class="mb-0">Total:</h5>
+                                    <h5 class="mb-0 text-primary" id="totalAmount">Rp 0</h5>
                                 </div>
                             </div>
 
@@ -182,6 +178,10 @@
                                 <i class="bi bi-check-circle me-2"></i>
                                 <span>Place Order</span>
                             </button>
+
+                            <a href="{{ route('cart.index') }}" class="btn btn-outline-secondary w-100 mt-2">
+                                <i class="bi bi-arrow-left me-2"></i> Back to Cart
+                            </a>
                         </form>
                     </div>
                 </div>
@@ -192,134 +192,120 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // ✅ Cart Data (temporary - should come from session/localStorage)
-        let cart = [{
-                product_id: 1,
-                name: 'iPhone 15 Pro',
-                price: 15000000,
-                quantity: 1,
-                image: 'https://via.placeholder.com/80'
-            },
-            {
-                product_id: 3,
-                name: 'MacBook Pro M3',
-                price: 35000000,
-                quantity: 1,
-                image: 'https://via.placeholder.com/80'
-            }
-        ];
+        // ✅ Define base URLs
+        const BASE_URL = '{{ url('/') }}';
+        const STORAGE_URL = '{{ url('storage') }}';
+        let cartData = null;
 
         // Load cart on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadCart();
-            updateTotal();
-
-            // Handle checkout form submission
             document.getElementById('checkoutForm').addEventListener('submit', handleCheckout);
         });
 
-        // Load cart items
-        function loadCart() {
-            const cartItemsContainer = document.getElementById('cartItems');
+        // ✅ Load cart from session via API
+        async function loadCart() {
+            try {
+                const response = await fetch('{{ route('cart.get') }}', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
 
-            if (cart.length === 0) {
-                cartItemsContainer.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="bi bi-cart-x fs-1 text-muted"></i>
-                        <p class="text-muted mt-3">Your cart is empty</p>
-                        <a href="/shop" class="btn btn-primary">Continue Shopping</a>
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    cartData = data.data;
+                    displayCart(cartData);
+                } else {
+                    throw new Error('Failed to load cart');
+                }
+            } catch (error) {
+                console.error('Load cart error:', error);
+                document.getElementById('cartItems').innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        Failed to load cart.<a href="{{ route('cart.index') }}">Go back to cart</a>
                     </div>
                 `;
+            }
+        }
+
+        // Display cart items
+        function displayCart(data) {
+            const cartItemsContainer = document.getElementById('cartItems');
+
+            if (!data.items || data.items.length === 0) {
+                cartItemsContainer.innerHTML = `
+                    <div class="empty-cart">
+                        <i class="bi bi-cart-x"></i>
+                        <h4 class="text-muted">Your cart is empty</h4>
+                        <p class="text-muted">Add some products to get started</p>
+                        <a href="{{ route('shop.index') }}" class="btn btn-primary">
+                            <i class="bi bi-shop me-2"></i> Start Shopping
+                        </a>
+                    </div>
+                `;
+                updateTotal(0);
                 return;
             }
 
             let html = '';
-            cart.forEach((item, index) => {
+            data.items.forEach(item => {
+                const imageUrl = item.image ? `${STORAGE_URL}/${item.image}` : 'https://via.placeholder.com/80';
+
                 html += `
                     <div class="cart-item">
-                        <img src="${item.image}" alt="${item.name}">
+                        <img src="${imageUrl}" alt="${escapeHtml(item.name)}" 
+                            onerror="this.src='https://via.placeholder.com/80'">
                         <div class="flex-grow-1">
-                            <h6 class="mb-1">${item.name}</h6>
+                            <h6 class="mb-1">${escapeHtml(item.name)}</h6>
                             <p class="text-muted mb-2">Rp ${formatNumber(item.price)}</p>
-                            <div class="quantity-control">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${index}, -1)">
-                                    <i class="bi bi-dash"></i>
-                                </button>
-                                <input type="number" class="form-control form-control-sm" value="${item.quantity}" readonly>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${index}, 1)">
-                                    <i class="bi bi-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <p class="mb-2 fw-bold">Rp ${formatNumber(item.price * item.quantity)}</p>
-                            <button type="button" class="btn btn-sm btn-danger" onclick="removeItem(${index})">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            <p class="mb-0">
+                                <strong>Qty:</strong> ${item.quantity} × 
+                                <strong>Rp ${formatNumber(item.price * item.quantity)}</strong>
+                            </p>
                         </div>
                     </div>
                 `;
             });
 
             cartItemsContainer.innerHTML = html;
+            updateTotal(data.total);
         }
 
-        // Update quantity
-        function updateQuantity(index, change) {
-            cart[index].quantity += change;
-            if (cart[index].quantity < 1) cart[index].quantity = 1;
-            loadCart();
-            updateTotal();
-        }
+        // Update total with tax
+        function updateTotal(subtotal) {
+            const tax = subtotal * 0.11;
+            const total = subtotal + tax;
 
-        // Remove item
-        function removeItem(index) {
-            Swal.fire({
-                title: 'Remove Item? ',
-                text: 'Are you sure you want to remove this item from cart?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, remove it! ',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    cart.splice(index, 1);
-                    loadCart();
-                    updateTotal();
-
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Removed!',
-                        text: 'Item removed from cart',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                }
-            });
-        }
-
-        // Update total
-        function updateTotal() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             document.getElementById('subtotal').textContent = 'Rp ' + formatNumber(subtotal);
-            document.getElementById('totalAmount').textContent = 'Rp ' + formatNumber(subtotal);
+            document.getElementById('tax').textContent = 'Rp ' + formatNumber(tax);
+            document.getElementById('totalAmount').textContent = 'Rp ' + formatNumber(total);
         }
 
+        // Handle checkout submission
         async function handleCheckout(e) {
             e.preventDefault();
 
-            if (cart.length === 0) {
+            if (!cartData || cartData.items.length === 0) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Empty Cart',
-                    text: 'Please add items to cart before checkout'
+                    text: 'Please add items to cart before checkout',
+                    confirmButtonColor: '#4f46e5'
                 });
                 return;
             }
 
+            // Validate form
             const form = e.target;
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
             const formData = new FormData(form);
 
             // Show loading
@@ -334,53 +320,54 @@
 
             // Prepare request data
             const requestData = {
-                items: cart.map(item => ({
+                items: cartData.items.map(item => ({
                     product_id: item.product_id,
                     quantity: item.quantity
                 })),
                 payment_method: formData.get('payment_method'),
                 shipping_address: formData.get('shipping_address'),
                 phone: formData.get('phone'),
-                notes: formData.get('notes')
+                notes: formData.get('notes') || ''
             };
 
             try {
-                // ✅ Use web route instead of API route
                 const response = await fetch('{{ route('transactions.store') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        // ❌ REMOVE Authorization header
                     },
                     body: JSON.stringify(requestData)
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (response.ok && data.success) {
+                if (response.ok && result.success) {
                     // Success
                     await Swal.fire({
                         icon: 'success',
                         title: 'Order Placed Successfully!',
                         html: `
-                        <p>Your order <strong>${data.data.order_number}</strong> has been created.</p>
-                        <p class="text-muted">Total: <strong>Rp ${formatNumber(data.data.total_amount)}</strong></p>
-                        <p class="text-muted small">Check your email for order details</p>
-                    `,
+                            <p>Your order <strong>${result.data.order_number}</strong> has been created.</p>
+                            <p class="text-muted">Total: <strong>Rp ${formatNumber(result.data.total_amount)}</strong></p>
+                            <p class="text-muted small">Check your email for order details</p>
+                        `,
                         confirmButtonColor: '#4f46e5',
-                        confirmButtonText: 'View Order'
+                        confirmButtonText: 'View Orders'
                     });
 
-                    // Clear cart
-                    cart = [];
+                    // Clear cart and redirect
+                    await fetch('{{ route('cart.clear') }}', {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    });
 
-                    // Redirect to customer dashboard
-                    window.location.href = '{{ url('/') }}';
+                    window.location.href = '{{ route('transactions.index') }}';
                 } else {
-                    // Error
-                    throw new Error(data.message || 'Failed to create order');
+                    throw new Error(result.message || 'Failed to create order');
                 }
             } catch (error) {
                 console.error('Checkout error:', error);
@@ -388,15 +375,27 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Order Failed',
-                    text: error.message || 'Something went wrong.  Please try again.',
+                    text: error.message || 'Something went wrong.Please try again.',
                     confirmButtonColor: '#4f46e5'
                 });
             }
         }
 
-        // Format number with thousand separator
+        // Format number
         function formatNumber(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
         }
     </script>
 </body>
