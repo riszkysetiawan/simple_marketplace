@@ -116,6 +116,9 @@ Route::middleware('auth')->prefix('transactions')->name('transactions.')->group(
     Route::get('/{transaction}', [TransactionController::class, 'show'])->name('show');
     Route::post('/{transaction}/confirm-payment', [TransactionController::class, 'confirmPayment'])->name('confirm-payment');
     Route::post('/{transaction}/cancel', [TransactionController::class, 'cancel'])->name('cancel');
+    Route::get('/transactions/{transaction}/invoice-html', [TransactionController::class, 'showInvoice'])->name('invoice-html');
+    Route::get('/{transaction}/invoice', [TransactionController::class, 'downloadInvoice'])->name('invoice');
+    Route::get('/{transaction}/print', [TransactionController::class, 'printOrder'])->name('print');
 });
 // ========================================
 // CHECKOUT ROUTES

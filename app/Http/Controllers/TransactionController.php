@@ -7,6 +7,7 @@ use App\Models\TransactionItem;
 use App\Models\Product;
 use App\Notifications\NewOrderCreated;
 use App\Notifications\OrderStatusUpdated;
+use PDF;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -211,6 +212,60 @@ class TransactionController extends Controller
         }
 
         return view('customer.transaction-detail', compact('transaction'));
+    }
+    /**
+     * Show invoice (HTML)
+     */
+    public function showInvoice(Transaction $transaction)
+    {
+        if ($transaction->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        return view('customer.transactions.invoice', compact('transaction'));
+    }
+
+    /**
+     * Download invoice (PDF)
+     */
+    /**
+     * Download invoice (PDF)
+     */
+    public function downloadInvoice(Transaction $transaction)
+    {
+        if ($transaction->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        $pdf = PDF::loadView('invoices.transaction', compact('transaction'));
+
+        // Set paper size and margins
+        $pdf->setPaper('A4');
+        $pdf->setOption('margin-top', 10);
+        $pdf->setOption('margin-bottom', 10);
+        $pdf->setOption('margin-left', 10);
+        $pdf->setOption('margin-right', 10);
+
+        // Set DPI for better quality
+        $pdf->setOption('dpi', 300);
+
+        // Enable images
+        $pdf->setOption('enable_local_file_access', true);
+
+        return $pdf->download("Invoice-{$transaction->order_number}.pdf");
+    }
+
+
+    /**
+     * Print order
+     */
+    public function printOrder(Transaction $transaction)
+    {
+        if ($transaction->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        return view('customer.transactions.print', compact('transaction'));
     }
 
     /**
