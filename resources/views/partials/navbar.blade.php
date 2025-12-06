@@ -51,7 +51,7 @@
                         </li>
                     </ul>
                 </li>
-                <li class="nav-item">
+                {{-- <li class="nav-item">
                     <a class="nav-link" href="#about">
                         <i class="bi bi-info-circle me-1"></i> About
                     </a>
@@ -60,7 +60,7 @@
                     <a class="nav-link" href="#contact">
                         <i class="bi bi-envelope me-1"></i> Contact
                     </a>
-                </li>
+                </li> --}}
             </ul>
 
             <!-- Right Menu -->
@@ -79,9 +79,9 @@
                 <!-- Cart -->
                 <a href="{{ route('cart.index') }}" class="btn btn-outline-primary position-relative">
                     <i class="bi bi-cart3 fs-5"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                        0
-                        <span class="visually-hidden">items in cart</span>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                        id="navCartCount">
+                        {{ count(session()->get('cart', [])) }}
                     </span>
                 </a>
 
@@ -173,3 +173,18 @@
         </form>
     </div>
 </div>
+@push('scripts')
+    <script>
+        function updateNavCartCount() {
+            fetch('{{ route('cart.get') }}')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('navCartCount').textContent = data.data.count;
+                    }
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', updateNavCartCount);
+    </script>
+@endpush

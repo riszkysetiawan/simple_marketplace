@@ -5,14 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     /**
-     * Register a new user
+     * Register new user
      */
     public function register(Request $request)
     {
@@ -30,14 +29,10 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Get customer role
-        $customerRole = \Spatie\Permission\Models\Role::where('name', 'customer')->first();
-
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'id_roles' => $customerRole? ->id,
         ]);
 
         // Assign customer role
@@ -52,7 +47,7 @@ class AuthController extends Controller
             'data' => [
                 'user' => $user,
                 'access_token' => $token,
-                'token_type' => 'Bearer',
+                'token_type' => 'Bearer'
             ]
         ], 201);
     }
@@ -75,15 +70,16 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials'
             ], 401);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
-
+        // Create token
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -92,7 +88,7 @@ class AuthController extends Controller
             'data' => [
                 'user' => $user,
                 'access_token' => $token,
-                'token_type' => 'Bearer',
+                'token_type' => 'Bearer'
             ]
         ]);
     }
@@ -106,7 +102,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Logged out successfully'
+            'message' => 'Logout successful'
         ]);
     }
 
@@ -117,7 +113,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $request->user()
+            'data' => $request->user()->load('roles')
         ]);
     }
 }

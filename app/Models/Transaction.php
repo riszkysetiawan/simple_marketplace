@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Illuminate\Support\Str;
 
 class Transaction extends Model
 {
@@ -32,6 +33,18 @@ class Transaction extends Model
         'completed_at' => 'datetime',
     ];
 
+    // ✅ Auto-generate order number
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($transaction) {
+            if (empty($transaction->order_number)) {
+                $transaction->order_number = 'ORD-' . strtoupper(Str::random(10));
+            }
+        });
+    }
+
     // ✅ Activity Log Configuration
     public function getActivitylogOptions(): LogOptions
     {
@@ -52,5 +65,34 @@ class Transaction extends Model
     public function items()
     {
         return $this->hasMany(TransactionItem::class);
+    }
+
+    // ✅ Helper methods
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->status === 'paid';
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
+    }
+
+    // ✅ Calculate total from items
+    public function calculateTotal()
+    {
+        $this->total_amount = $this->items->sum('subtotal');
+        $this->save();
+        return $this->total_amount;
     }
 }

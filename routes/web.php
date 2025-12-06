@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\SocialLoginController;
 use App\Http\Controllers\Auth\CustomLogoutController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\ShopController;
 use Illuminate\Support\Facades\Route;
 
@@ -98,27 +100,20 @@ Route::prefix('shop')->name('shop.')->group(function () {
 // ========================================
 
 Route::middleware('auth')->prefix('cart')->name('cart.')->group(function () {
-    Route::get('/', function () {
-        return view('cart.index');
-    })->name('index');
-
-    Route::post('/add/{product}', function (\App\Models\Product $product) {
-        return redirect()->back()->with('success', 'Product added to cart! ');
-    })->name('add');
-
-    Route::patch('/update/{item}', function ($item) {
-        return redirect()->back()->with('success', 'Cart updated!');
-    })->name('update');
-
-    Route::delete('/remove/{item}', function ($item) {
-        return redirect()->back()->with('success', 'Item removed from cart!');
-    })->name('remove');
-
-    Route::delete('/clear', function () {
-        return redirect()->route('cart.index')->with('success', 'Cart cleared!');
-    })->name('clear');
+    Route::get('/', [CartController::class, 'index'])->name('index');
+    Route::get('/get', [CartController::class, 'getCart'])->name('get');
+    Route::post('/add/{product}', [CartController::class, 'add'])->name('add');
+    Route::patch('/update/{product}', [CartController::class, 'update'])->name('update');
+    Route::delete('/remove/{product}', [CartController::class, 'remove'])->name('remove');
+    Route::delete('/clear', [CartController::class, 'clear'])->name('clear');
 });
-
+Route::middleware('auth')->prefix('transactions')->name('transactions.')->group(function () {
+    Route::post('/', [TransactionController::class, 'store'])->name('store');
+    Route::get('/', [TransactionController::class, 'index'])->name('index');
+    Route::get('/{transaction}', [TransactionController::class, 'show'])->name('show');
+    Route::post('/{transaction}/confirm-payment', [TransactionController::class, 'confirmPayment'])->name('confirm-payment');
+    Route::post('/{transaction}/cancel', [TransactionController::class, 'cancel'])->name('cancel');
+});
 // ========================================
 // CHECKOUT ROUTES
 // ========================================

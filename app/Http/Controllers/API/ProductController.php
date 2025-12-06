@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
@@ -13,7 +14,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::where('is_active', true)->with('category');
+        $query = Product::with('category')->where('is_active', true);
 
         // Search
         if ($request->has('search')) {
@@ -23,12 +24,12 @@ class ProductController extends Controller
             });
         }
 
-        // Category filter
+        // Filter by category
         if ($request->has('category_id')) {
             $query->where('category_id', $request->category_id);
         }
 
-        // Price range
+        // Filter by price range
         if ($request->has('price_min')) {
             $query->where('price', '>=', $request->price_min);
         }
@@ -36,12 +37,12 @@ class ProductController extends Controller
             $query->where('price', '<=', $request->price_max);
         }
 
-        // In stock only
-        if ($request->has('in_stock') && $request->in_stock) {
-            $query->where('stock', '>', 0);
+        // Filter by featured
+        if ($request->has('featured')) {
+            $query->where('is_featured', true);
         }
 
-        // Sorting
+        // Sort
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
         $query->orderBy($sortBy, $sortOrder);
@@ -64,10 +65,17 @@ class ProductController extends Controller
     {
         $product = Product::with('category')->find($id);
 
-        if (!$product || !$product->is_active) {
+        if (!$product) {
             return response()->json([
                 'success' => false,
                 'message' => 'Product not found'
+            ], 404);
+        }
+
+        if (! $product->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product is not available'
             ], 404);
         }
 
@@ -83,13 +91,14 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = \Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|string',
+            'is_featured' => 'boolean',
         ]);
 
         if ($validator->fails()) {
@@ -100,19 +109,12 @@ class ProductController extends Controller
             ], 422);
         }
 
-        $data = $request->all();
-        $data['slug'] = \Str::slug($request->name);
-
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('products', 'public');
-        }
-
-        $product = Product::create($data);
+        $product = Product::create($request->all());
 
         return response()->json([
             'success' => true,
             'message' => 'Product created successfully',
-            'data' => $product
+            'data' => $product->load('category')
         ], 201);
     }
 
@@ -130,13 +132,15 @@ class ProductController extends Controller
             ], 404);
         }
 
-        $validator = \Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'sometimes|required|string',
             'price' => 'sometimes|required|numeric|min:0',
             'stock' => 'sometimes|required|integer|min:0',
             'category_id' => 'sometimes|required|exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|string',
+            'is_featured' => 'boolean',
+            'is_active' => 'boolean',
         ]);
 
         if ($validator->fails()) {
@@ -147,26 +151,12 @@ class ProductController extends Controller
             ], 422);
         }
 
-        $data = $request->all();
-
-        if ($request->has('name')) {
-            $data['slug'] = \Str::slug($request->name);
-        }
-
-        if ($request->hasFile('image')) {
-            // Delete old image
-            if ($product->image) {
-                \Storage::disk('public')->delete($product->image);
-            }
-            $data['image'] = $request->file('image')->store('products', 'public');
-        }
-
-        $product->update($data);
+        $product->update($request->all());
 
         return response()->json([
             'success' => true,
             'message' => 'Product updated successfully',
-            'data' => $product
+            'data' => $product->load('category')
         ]);
     }
 
@@ -182,11 +172,6 @@ class ProductController extends Controller
                 'success' => false,
                 'message' => 'Product not found'
             ], 404);
-        }
-
-        // Delete image
-        if ($product->image) {
-            \Storage::disk('public')->delete($product->image);
         }
 
         $product->delete();
