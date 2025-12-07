@@ -14,6 +14,7 @@ use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
 use Illuminate\Support\Str;
 use App\Models\Product;
 use App\Models\Transaction;
+use Illuminate\Support\Facades\Log;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -85,43 +86,131 @@ class User extends Authenticatable implements FilamentUser
      */
     public static function findOrCreateFromGoogle($googleUser)
     {
-        $email = $googleUser->email ?? $googleUser->getEmail();
-        $name = $googleUser->name ?? $googleUser->getName();
-        $id = $googleUser->id ?? $googleUser->getId();
+        try {
+            $email = $googleUser->email;
+            $name = $googleUser->name;
+            $googleId = $googleUser->id;
+            $avatar = $googleUser->avatar;
 
-        return self::firstOrCreate(
-            ['email' => $email],
-            [
+            Log::info('Finding/Creating Google User', [
+                'email' => $email,
+                'google_id' => $googleId
+            ]);
+
+            // Cari user berdasarkan google_id atau email
+            $user = self::where('google_id', $googleId)
+                ->orWhere('email', $email)
+                ->first();
+
+            if ($user) {
+                Log::info('User found, updating Google ID if needed');
+
+                // Update google_id jika belum ada
+                if (!$user->google_id) {
+                    $user->update([
+                        'google_id' => $googleId,
+                        'provider' => 'google',
+                        'provider_id' => $googleId,
+                        'avatar' => $avatar ?? $user->avatar,
+                        'email_verified_at' => $user->email_verified_at ?? now(),
+                    ]);
+                }
+
+                return $user;
+            }
+
+            Log::info('Creating new user from Google');
+
+            // Buat user baru
+            $user = self::create([
                 'name' => $name,
-                'google_id' => $id,
+                'email' => $email,
+                'google_id' => $googleId,
                 'provider' => 'google',
-                'provider_id' => $id,
+                'provider_id' => $googleId,
+                'avatar' => $avatar,
                 'email_verified_at' => now(),
                 'password' => bcrypt(Str::random(16)),
-            ]
-        );
+            ]);
+
+            // Assign role customer
+            if (!$user->hasRole('customer')) {
+                $user->assignRole('customer');
+            }
+
+            Log::info('User created successfully', ['id' => $user->id]);
+
+            return $user;
+        } catch (\Exception $e) {
+            Log::error('Error in findOrCreateFromGoogle: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            throw $e;
+        }
     }
 
+
     /**
-     * ✅ Find or create user from Facebook
+     * Find or create user from Facebook
      */
     public static function findOrCreateFromFacebook($facebookUser)
     {
-        $email = $facebookUser->email ?? $facebookUser->getEmail();
-        $name = $facebookUser->name ?? $facebookUser->getName();
-        $id = $facebookUser->id ?? $facebookUser->getId();
+        try {
+            $email = $facebookUser->email;
+            $name = $facebookUser->name;
+            $facebookId = $facebookUser->id;
+            $avatar = $facebookUser->avatar;
 
-        return self::firstOrCreate(
-            ['email' => $email],
-            [
+            Log::info('Finding/Creating Facebook User', [
+                'email' => $email,
+                'facebook_id' => $facebookId
+            ]);
+
+            // Cari user berdasarkan facebook_id atau email
+            $user = self::where('facebook_id', $facebookId)
+                ->orWhere('email', $email)
+                ->first();
+
+            if ($user) {
+                Log::info('User found, updating Facebook ID if needed');
+
+                if (!$user->facebook_id) {
+                    $user->update([
+                        'facebook_id' => $facebookId,
+                        'provider' => 'facebook',
+                        'provider_id' => $facebookId,
+                        'avatar' => $avatar ?? $user->avatar,
+                        'email_verified_at' => $user->email_verified_at ?? now(),
+                    ]);
+                }
+
+                return $user;
+            }
+
+            Log::info('Creating new user from Facebook');
+
+            $user = self::create([
                 'name' => $name,
-                'facebook_id' => $id,
+                'email' => $email,
+                'facebook_id' => $facebookId,
                 'provider' => 'facebook',
-                'provider_id' => $id,
+                'provider_id' => $facebookId,
+                'avatar' => $avatar,
                 'email_verified_at' => now(),
                 'password' => bcrypt(Str::random(16)),
-            ]
-        );
+            ]);
+
+            if (!$user->hasRole('customer')) {
+                $user->assignRole('customer');
+            }
+
+            Log::info('User created successfully', ['id' => $user->id]);
+
+            return $user;
+        } catch (\Exception $e) {
+            Log::error('Error in findOrCreateFromFacebook: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            throw $e;
+        }
     }
 
     public function transactions()

@@ -19,38 +19,25 @@ class SocialLoginController extends Controller
     }
 
     /**
-     * Handle Google Callback
+     * Handle Google callback
      */
     public function handleGoogleCallback()
     {
         try {
             $googleUser = Socialite::driver('google')->user();
 
-            \Log::info('Google User:', (array) $googleUser);
-
-            // ✅ Find or create user
             $user = User::findOrCreateFromGoogle($googleUser);
 
-            // ✅ Assign role jika belum ada
-            if (!$user->hasRole('customer')) {
-                $user->assignRole('customer');
-            }
-
-            // ✅ Login user
             Auth::login($user, true);
 
-            // ✅ Redirect berdasarkan role
             if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
-                return redirect()->intended('/admin')
-                    ->with('success', 'Welcome back, Admin ' . $user->name . '!');
+                return redirect()->intended('/admin');
             }
 
-            return redirect()->intended('/home')
-                ->with('success', 'Welcome back, ' . $user->name . '!');
+            return redirect('/')->with('success', 'Successfully logged in with Google!');
         } catch (Exception $e) {
-            \Log::error('Google OAuth Error: ' . $e->getMessage());
-            \Log::error('Stack: ' . $e->getTraceAsString());
-            return redirect('/login')->with('error', 'Failed to login with Google: ' . $e->getMessage());
+            \Log::error('Google Login Error: ' . $e->getMessage());
+            return redirect('/login')->with('error', 'Google login failed. Please try again.');
         }
     }
 
@@ -63,38 +50,25 @@ class SocialLoginController extends Controller
     }
 
     /**
-     * Handle Facebook Callback
+     * Handle Facebook callback
      */
     public function handleFacebookCallback()
     {
         try {
             $facebookUser = Socialite::driver('facebook')->user();
 
-            \Log::info('Facebook User:', (array) $facebookUser);
-
-            // ✅ Find or create user
             $user = User::findOrCreateFromFacebook($facebookUser);
 
-            // ✅ Assign role jika belum ada
-            if (!$user->hasRole('customer')) {
-                $user->assignRole('customer');
-            }
-
-            // ✅ Login user
             Auth::login($user, true);
 
-            // ✅ Redirect berdasarkan role
             if ($user->hasRole('super_admin') || $user->hasRole('admin')) {
-                return redirect()->intended('/admin')
-                    ->with('success', 'Welcome back, Admin ' . $user->name . '!');
+                return redirect()->intended('/admin');
             }
 
-            return redirect()->intended('/home')
-                ->with('success', 'Welcome back, ' . $user->name . '!');
+            return redirect('/')->with('success', 'Successfully logged in with Facebook!');
         } catch (Exception $e) {
-            \Log::error('Facebook OAuth Error: ' . $e->getMessage());
-            \Log::error('Stack: ' . $e->getTraceAsString());
-            return redirect('/login')->with('error', 'Failed to login with Facebook: ' . $e->getMessage());
+            \Log::error('Facebook Login Error: ' . $e->getMessage());
+            return redirect('/login')->with('error', 'Facebook login failed. Please try again.');
         }
     }
 }

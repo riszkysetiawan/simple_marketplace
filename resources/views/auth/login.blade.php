@@ -11,14 +11,14 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- ✅ Google Sign-In (PENTING: async defer) -->
+    <!-- ✅ Google Sign-In Library -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <!-- Facebook SDK -->
     <script async defer crossorigin="anonymous"
-        src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0&appId={{ env('FACEBOOK_CLIENT_ID') }}">
+        src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0&appId={{ config('services.facebook.client_id') }}">
     </script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <style>
         :root {
             --primary-color: #4f46e5;
@@ -87,21 +87,6 @@
             box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.15);
         }
 
-        .form-control.is-invalid {
-            border-color: #dc3545;
-        }
-
-        .form-control.is-invalid:focus {
-            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15);
-        }
-
-        .invalid-feedback {
-            display: block;
-            color: #dc3545;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-
         .btn-primary {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
             border: none;
@@ -116,11 +101,6 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
             color: white;
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
         }
 
         .btn-social {
@@ -176,25 +156,10 @@
             font-size: 0.875rem;
         }
 
-        .form-check-input:checked {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-
-        .link-primary {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .link-primary:hover {
-            color: var(--primary-dark);
-            text-decoration: underline;
-        }
-
         .btn-loading {
             position: relative;
             pointer-events: none;
+            opacity: 0.7;
         }
 
         .btn-loading::after {
@@ -218,18 +183,9 @@
             }
         }
 
-        @media (max-width: 576px) {
-            .login-container {
-                margin: 1rem;
-            }
-
-            .login-body {
-                padding: 1.5rem;
-            }
-
-            .login-header h1 {
-                font-size: 1.5rem;
-            }
+        /* Hide Google One Tap if needed */
+        #g_id_onload {
+            display: none !important;
         }
     </style>
 </head>
@@ -238,7 +194,6 @@
     <div class="container">
         <div class="login-container">
             <div class="login-card">
-                <!-- Header -->
                 <div class="login-header">
                     <h1>
                         <i class="bi bi-shop"></i> Welcome Back!
@@ -246,31 +201,25 @@
                     <p>Sign in to your account to continue</p>
                 </div>
 
-                <!-- Body -->
                 <div class="login-body">
                     <!-- Login Form -->
                     <form id="loginForm">
-                        <!-- Email -->
                         <div class="mb-3">
                             <label for="email" class="form-label">
                                 <i class="bi bi-envelope"></i> Email Address
                             </label>
                             <input type="email" class="form-control" id="email" name="email"
                                 placeholder="Enter your email" required autofocus>
-                            <div class="invalid-feedback" id="emailError"></div>
                         </div>
 
-                        <!-- Password -->
                         <div class="mb-3">
                             <label for="password" class="form-label">
                                 <i class="bi bi-lock"></i> Password
                             </label>
                             <input type="password" class="form-control" id="password" name="password"
                                 placeholder="Enter your password" required>
-                            <div class="invalid-feedback" id="passwordError"></div>
                         </div>
 
-                        <!-- Remember Me & Forgot Password -->
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="remember_me" name="remember">
@@ -278,7 +227,6 @@
                                     Remember me
                                 </label>
                             </div>
-
                             @if (Route::has('password.request'))
                                 <a href="{{ route('password.request') }}" class="link-primary">
                                     Forgot Password?
@@ -286,19 +234,15 @@
                             @endif
                         </div>
 
-                        <!-- Submit Button -->
                         <button type="submit" class="btn btn-primary w-100 mb-3" id="loginBtn">
                             <i class="bi bi-box-arrow-in-right me-2"></i>
                             <span id="btnText">Sign In</span>
                         </button>
 
-                        <!-- Register Link -->
                         <div class="text-center">
                             <span class="text-muted">Don't have an account? </span>
                             @if (Route::has('register'))
-                                <a href="{{ route('register') }}" class="link-primary ms-1">
-                                    Sign Up
-                                </a>
+                                <a href="{{ route('register') }}" class="link-primary ms-1">Sign Up</a>
                             @endif
                         </div>
                     </form>
@@ -308,8 +252,9 @@
                     </div>
 
                     <div class="row g-2">
-                        <!-- Google Login -->
+                        <!-- Google Login Button -->
                         <div class="col-6">
+                            <div id="g_id_signin" style="display: none;"></div>
                             <button type="button" class="btn btn-social btn-google w-100" id="googleLoginBtn">
                                 <svg width="20" height="20" viewBox="0 0 24 24">
                                     <path fill="#4285F4"
@@ -325,7 +270,7 @@
                             </button>
                         </div>
 
-                        <!-- Facebook Login -->
+                        <!-- Facebook Login Button -->
                         <div class="col-6">
                             <button type="button" class="btn btn-social btn-facebook w-100" id="facebookLoginBtn">
                                 <svg width="20" height="20" fill="#1877F2" viewBox="0 0 24 24">
@@ -339,7 +284,6 @@
                 </div>
             </div>
 
-            <!-- Footer -->
             <div class="text-center mt-3">
                 <p class="text-white mb-0">
                     <small>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</small>
@@ -348,11 +292,13 @@
         </div>
     </div>
 
-    <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // ========== GET CSRF TOKEN ==========
+        const GOOGLE_CLIENT_ID = '{{ config('services.google.client_id') }}';
+        const FACEBOOK_APP_ID = '{{ config('services.facebook.client_id') }}';
+
+        // ========== CSRF TOKEN ==========
         function getCsrfToken() {
             return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         }
@@ -375,8 +321,8 @@
                         'X-CSRF-TOKEN': getCsrfToken()
                     },
                     body: JSON.stringify({
-                        email: email,
-                        password: password
+                        email,
+                        password
                     })
                 });
 
@@ -386,35 +332,25 @@
                     localStorage.setItem('token', data.data.access_token);
                     localStorage.setItem('user', JSON.stringify(data.data.user));
 
-                    Swal.fire({
+                    await Swal.fire({
                         icon: 'success',
                         title: 'Success!',
                         text: data.message,
                         confirmButtonColor: '#4f46e5',
                         timer: 2000,
-                        timerProgressBar: true,
-                        didClose: () => {
-                            window.location.href = data.data.redirect_url;
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Login Failed',
-                        text: data.message || 'An error occurred',
-                        confirmButtonColor: '#4f46e5'
+                        timerProgressBar: true
                     });
 
-                    loginBtn.disabled = false;
-                    loginBtn.classList.remove('btn-loading');
-                    btnText.textContent = 'Sign In';
+                    window.location.href = data.data.redirect_url;
+                } else {
+                    throw new Error(data.message || 'Login failed');
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Login Error:', error);
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: 'An error occurred. Please try again.',
+                    title: 'Login Failed',
+                    text: error.message || 'An error occurred',
                     confirmButtonColor: '#4f46e5'
                 });
 
@@ -424,13 +360,13 @@
             }
         }
 
-        // ========== GOOGLE LOGIN ==========
-        function onGoogleSignIn(response) {
+        // ========== GOOGLE LOGIN CALLBACK ==========
+        function handleGoogleCredentialResponse(response) {
             const loginBtn = document.getElementById('googleLoginBtn');
             loginBtn.disabled = true;
             loginBtn.classList.add('btn-loading');
 
-            console.log('Google response:', response);
+            console.log('Google credential received');
 
             fetch('/api/google/login', {
                     method: 'POST',
@@ -444,43 +380,36 @@
                     })
                 })
                 .then(res => res.json())
-                .then(data => {
-                    console.log('Response:', data);
+                .then(async data => {
+                    console.log('Google login response:', data);
 
                     if (data.success) {
                         localStorage.setItem('token', data.data.access_token);
                         localStorage.setItem('user', JSON.stringify(data.data.user));
 
-                        Swal.fire({
+                        await Swal.fire({
                             icon: 'success',
                             title: 'Success!',
                             text: data.message,
                             confirmButtonColor: '#4f46e5',
                             timer: 2000,
-                            timerProgressBar: true,
-                            didClose: () => {
-                                window.location.href = data.data.redirect_url;
-                            }
+                            timerProgressBar: true
                         });
+
+                        window.location.href = data.data.redirect_url;
                     } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Login Failed',
-                            text: data.message,
-                            confirmButtonColor: '#4f46e5'
-                        });
-                        loginBtn.disabled = false;
-                        loginBtn.classList.remove('btn-loading');
+                        throw new Error(data.message);
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('Google login error:', error);
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error',
-                        text: 'Google login failed: ' + error.message,
+                        title: 'Login Failed',
+                        text: error.message || 'Google login failed',
                         confirmButtonColor: '#4f46e5'
                     });
+
                     loginBtn.disabled = false;
                     loginBtn.classList.remove('btn-loading');
                 });
@@ -488,6 +417,16 @@
 
         // ========== FACEBOOK LOGIN ==========
         function handleFacebookLogin() {
+            if (typeof FB === 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Facebook SDK not loaded',
+                    confirmButtonColor: '#4f46e5'
+                });
+                return;
+            }
+
             FB.login(function(response) {
                 if (response.authResponse) {
                     const loginBtn = document.getElementById('facebookLoginBtn');
@@ -506,67 +445,62 @@
                             })
                         })
                         .then(res => res.json())
-                        .then(data => {
+                        .then(async data => {
                             if (data.success) {
                                 localStorage.setItem('token', data.data.access_token);
                                 localStorage.setItem('user', JSON.stringify(data.data.user));
 
-                                Swal.fire({
+                                await Swal.fire({
                                     icon: 'success',
                                     title: 'Success!',
                                     text: data.message,
                                     confirmButtonColor: '#4f46e5',
                                     timer: 2000,
-                                    timerProgressBar: true,
-                                    didClose: () => {
-                                        window.location.href = data.data.redirect_url;
-                                    }
+                                    timerProgressBar: true
                                 });
+
+                                window.location.href = data.data.redirect_url;
                             } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Login Failed',
-                                    text: data.message,
-                                    confirmButtonColor: '#4f46e5'
-                                });
-                                loginBtn.disabled = false;
-                                loginBtn.classList.remove('btn-loading');
+                                throw new Error(data.message);
                             }
                         })
                         .catch(error => {
-                            console.error('Error:', error);
+                            console.error('Facebook login error:', error);
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Error',
-                                text: 'Facebook login failed',
+                                title: 'Login Failed',
+                                text: error.message || 'Facebook login failed',
                                 confirmButtonColor: '#4f46e5'
                             });
+
                             loginBtn.disabled = false;
                             loginBtn.classList.remove('btn-loading');
                         });
+                } else {
+                    console.log('Facebook login cancelled');
                 }
             }, {
                 scope: 'public_profile,email'
             });
         }
 
-        // ========== INITIALIZE GOOGLE & EVENT LISTENERS ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            // ✅ Wait untuk Google library dimuat
+        // ========== INITIALIZE ==========
+        window.addEventListener('load', function() {
+            // Initialize Google Sign-In
             if (typeof google !== 'undefined' && google.accounts) {
-                initializeGoogle();
+                google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: handleGoogleCredentialResponse,
+                    auto_select: false,
+                    cancel_on_tap_outside: true
+                });
+
+                console.log('Google Sign-In initialized');
             } else {
-                // Retry jika belum dimuat
-                setTimeout(function() {
-                    if (typeof google !== 'undefined' && google.accounts) {
-                        initializeGoogle();
-                    } else {
-                        console.error('Google Sign-In library failed to load');
-                    }
-                }, 1000);
+                console.error('Google Sign-In library not loaded');
             }
 
-            // ✅ Event listeners untuk form dan buttons
+            // Event Listeners
             document.getElementById('loginForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const email = document.getElementById('email').value;
@@ -576,46 +510,33 @@
 
             document.getElementById('googleLoginBtn').addEventListener('click', function() {
                 if (typeof google !== 'undefined' && google.accounts) {
-                    google.accounts.id.prompt();
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Google Sign-In is not available',
-                        confirmButtonColor: '#4f46e5'
+                    // Trigger Google One Tap
+                    google.accounts.id.prompt((notification) => {
+                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                            // Fallback to redirect method
+                            console.log('One Tap not available, using redirect method');
+                            window.location.href = '/auth/google';
+                        }
                     });
+                } else {
+                    // Fallback to redirect method
+                    window.location.href = '/auth/google';
                 }
             });
 
-            document.getElementById('facebookLoginBtn').addEventListener('click', function() {
-                if (typeof FB !== 'undefined') {
-                    handleFacebookLogin();
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Facebook SDK is not available',
-                        confirmButtonColor: '#4f46e5'
-                    });
-                }
-            });
+            document.getElementById('facebookLoginBtn').addEventListener('click', handleFacebookLogin);
         });
 
-        // ✅ Function untuk initialize Google
-        function initializeGoogle() {
-            google.accounts.id.initialize({
-                client_id: '{{ env('GOOGLE_CLIENT_ID') }}',
-                callback: onGoogleSignIn
-            });
-        }
-
-        // ✅ Facebook SDK initialization
+        // ========== FACEBOOK SDK INIT ==========
         window.fbAsyncInit = function() {
             FB.init({
-                appId: '{{ env('FACEBOOK_CLIENT_ID') }}',
+                appId: FACEBOOK_APP_ID,
+                cookie: true,
                 xfbml: true,
                 version: 'v18.0'
             });
+
+            console.log('Facebook SDK initialized');
         };
     </script>
 </body>
