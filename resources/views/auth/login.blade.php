@@ -253,7 +253,7 @@
 
                     <div class="row g-2">
                         <!-- Google Login Button -->
-                        <div class="col-6">
+                        <div class="">
                             <div id="g_id_signin" style="display: none;"></div>
                             <button type="button" class="btn btn-social btn-google w-100" id="googleLoginBtn">
                                 <svg width="20" height="20" viewBox="0 0 24 24">

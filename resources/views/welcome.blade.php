@@ -171,7 +171,7 @@
     </section>
 
     <!-- Newsletter Section -->
-    <section class="py-5 bg-primary text-white">
+    {{-- <section class="py-5 bg-primary text-white">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-6 mb-4 mb-lg-0">
@@ -196,5 +196,5 @@
                 </div>
             </div>
         </div>
-    </section>
+    </section> --}}
 @endsection

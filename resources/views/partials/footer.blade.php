@@ -121,10 +121,11 @@
                 </p>
             </div>
             <div class="col-md-6 text-center text-md-end">
-                <img src="https://via.placeholder.com/50x30? text=VISA" alt="Visa" class="me-2" height="30">
-                <img src="https://via.placeholder.com/50x30?text=MC" alt="Mastercard" class="me-2" height="30">
-                <img src="https://via.placeholder.com/50x30?text=PP" alt="PayPal" height="30">
+                <i class="bi bi-credit-card-2-front fs-3 text-primary me-2" title="Visa"></i>
+                <i class="bi bi-credit-card fs-3 text-danger me-2" title="Mastercard"></i>
+                <i class="bi bi-paypal fs-3 text-info" title="PayPal"></i>
             </div>
+
         </div>
     </div>
 </footer>

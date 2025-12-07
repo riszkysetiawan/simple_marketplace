@@ -31,7 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
             ->brandName('Simple Marketplace Admin')
-            ->brandLogo(asset('images/logo.png'))
+            ->brandLogo('https://ui-avatars.com/api/?name=Simple+Marketplace&size=200&background=0D8ABC&color=fff')
             ->favicon(asset('favicon.ico'))
             ->colors([
                 'primary' => Color::Amber,

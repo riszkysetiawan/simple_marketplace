@@ -454,7 +454,7 @@
 
                     <div class="row g-2">
                         <!-- Google Register -->
-                        <div class="col-6">
+                        <div class="">
                             <button type="button" class="btn btn-social btn-google w-100" id="googleRegisterBtn">
                                 <svg width="20" height="20" viewBox="0 0 24 24">
                                     <path fill="#4285F4"
