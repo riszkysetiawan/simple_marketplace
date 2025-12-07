@@ -1,11 +1,11 @@
-# 🛒 Simple Marketplace - Laravel 11 E-Commerce Platform
+# 🛒 Simple Marketplace - Laravel 12 E-Commerce Platform
 
-[![Laravel](https://img.shields.io/badge/Laravel-11.x-red.svg)](https://laravel.com)
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-red.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-blue.svg)](https://php.net)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0+-orange.svg)](https://www.mysql.com/)
 
-A comprehensive marketplace application built with Laravel 11, featuring advanced authentication systems, product management, transaction processing, and social login integration with Google and Facebook OAuth2.
+A comprehensive marketplace application built with Laravel 12, featuring advanced authentication systems, product management, transaction processing, and social login integration with Google and Facebook OAuth2.
 
 ---
 
@@ -30,7 +30,7 @@ A comprehensive marketplace application built with Laravel 11, featuring advance
 
 ## 🎯 Overview
 
-Simple Marketplace is a modern e-commerce platform designed to provide a seamless shopping experience. Built with Laravel 11 and following industry best practices, this application offers robust features for both customers and administrators.
+Simple Marketplace is a modern e-commerce platform designed to provide a seamless shopping experience. Built with Laravel 12 and following industry best practices, this application offers robust features for both customers and administrators.
 
 ### What Makes This Special?
 
@@ -130,7 +130,7 @@ Simple Marketplace is a modern e-commerce platform designed to provide a seamles
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **Laravel** | 11.x | PHP Framework |
+| **Laravel** | 12.x | PHP Framework |
 | **PHP** | 8.2+ | Programming Language |
 | **MySQL** | 8.0+ | Database |
 | **Laravel Passport** | 12.x | OAuth2 Authentication |
@@ -1690,7 +1690,7 @@ N/A (Initial release)
 Changed:
 
 N/A (Initial release)
-Made with ❤️ using Laravel 11
+Made with ❤️ using Laravel 12
 
 Happy Coding! 🚀
 
