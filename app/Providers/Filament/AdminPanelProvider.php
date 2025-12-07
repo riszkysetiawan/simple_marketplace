@@ -28,6 +28,8 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
             ->brandName('Simple Marketplace Admin')
             ->brandLogo(asset('images/logo.png'))
             ->favicon(asset('favicon.ico'))
@@ -56,6 +58,11 @@ class AdminPanelProvider extends PanelProvider
 
             ->widgets([
                 Widgets\AccountWidget::class,
+                \App\Filament\Widgets\StatsOverview::class,
+                \App\Filament\Widgets\RevenueChart::class,
+                \App\Filament\Widgets\SalesChart::class,
+                \App\Filament\Widgets\LatestOrders::class,
+                \App\Filament\Widgets\LowStockProducts::class,
             ])
 
             ->plugin(\BezhanSalleh\FilamentShield\FilamentShieldPlugin::make())

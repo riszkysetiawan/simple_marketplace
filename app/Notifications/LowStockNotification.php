@@ -4,10 +4,12 @@ namespace App\Notifications;
 
 use App\Models\Product;
 use Illuminate\Bus\Queueable;
+// ❌ HAPUS BARIS INI
+// use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Contracts\Queue\ShouldQueue;
 
-class LowStockNotification extends Notification implements ShouldQueue
+class LowStockNotification extends Notification // ✅ Hapus implements ShouldQueue
 {
     use Queueable;
 
@@ -17,7 +19,22 @@ class LowStockNotification extends Notification implements ShouldQueue
 
     public function via($notifiable): array
     {
-        return ['database'];
+        return ['mail', 'database'];
+    }
+
+    public function toMail($notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('⚠️ Low Stock Alert: ' . $this->product->name)
+            ->greeting('Hello ' . $notifiable->name . '!')
+            ->line('This is an alert that one of your products is running low on stock.')
+            ->line('**Product Details:**')
+            ->line('• Name: **' . $this->product->name . '**')
+            ->line('• SKU: ' . $this->product->sku)
+            ->line('• Current Stock: **' . $this->product->stock . ' units**')
+            ->line('• Price: Rp ' . number_format($this->product->price, 0, ',', '.'))
+            ->action('View Product', url('/admin/products/' . $this->product->id . '/edit'))
+            ->line('Please restock this product as soon as possible.');
     }
 
     public function toDatabase($notifiable): array
@@ -28,21 +45,6 @@ class LowStockNotification extends Notification implements ShouldQueue
             'product_id' => $this->product->id,
             'product_name' => $this->product->name,
             'stock' => $this->product->stock,
-            'icon' => 'heroicon-o-exclamation-triangle',
-            'icon_color' => 'warning',
-            'actions' => [
-                [
-                    'label' => 'View Product',
-                    'url' => route('filament.admin.resources.products.edit', ['record' => $this->product->id]),
-                ],
-            ],
-        ];
-    }
-
-    public function toArray($notifiable): array
-    {
-        return [
-            //
         ];
     }
 }

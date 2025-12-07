@@ -7,137 +7,34 @@
     <title>Order Status Updated</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f3f4f6;
-            margin: 0;
-            padding: 0;
-        }
-
-        .email-container {
-            max-width: 650px;
-            margin: 40px auto;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .email-header {
-            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-
-        .email-header h1 {
-            margin: 0 0 10px 0;
-            font-size: 28px;
-            font-weight: 700;
-        }
-
-        .email-header p {
-            margin: 0;
-            opacity: 0.9;
-            font-size: 16px;
-        }
-
-        .email-body {
-            padding: 40px 30px;
-        }
-
-        .order-summary {
-            background: #f9fafb;
-            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
             padding: 20px;
-            margin: 20px 0;
         }
 
-        .order-item-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #e5e7eb;
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
         }
 
-        .order-item-row:last-child {
-            border-bottom: none;
-        }
-
-        .order-label {
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        .order-value {
-            color: #111827;
-            font-weight: 600;
-        }
-
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-
-        .items-table th {
-            background: #f3f4f6;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            color: #374151;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        .items-table td {
-            padding: 12px;
-            border-bottom: 1px solid #e5e7eb;
-            color: #6b7280;
-        }
-
-        .items-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .total-row {
+        .content {
             background: #f9fafb;
-            font-weight: 700;
-            color: #111827;
-        }
-
-        .total-amount {
-            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            margin: 20px 0;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .button-container {
-            text-align: center;
-            margin: 30px 0;
-        }
-
-        .button {
-            display: inline-block;
-            padding: 14px 32px;
-            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
+            padding: 30px;
+            border: 1px solid #e5e7eb;
         }
 
         .status-badge {
             display: inline-block;
-            padding: 6px 12px;
+            padding: 8px 16px;
             border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
+            font-weight: bold;
+            margin: 10px 5px;
         }
 
         .status-pending {
@@ -146,18 +43,18 @@
         }
 
         .status-paid {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-processing {
             background: #dbeafe;
             color: #1e40af;
         }
 
-        .status-shipped {
+        .status-processing {
             background: #e0e7ff;
             color: #3730a3;
+        }
+
+        .status-shipped {
+            background: #d1fae5;
+            color: #065f46;
         }
 
         .status-completed {
@@ -170,97 +67,136 @@
             color: #991b1b;
         }
 
-        .info-box {
-            background: #f0f9ff;
-            padding: 15px;
+        .order-details {
+            background: white;
+            padding: 20px;
             border-radius: 8px;
             margin: 20px 0;
-            border-left: 4px solid #3b82f6;
         }
 
-        .email-footer {
-            background: #f9fafb;
-            padding: 30px;
+        .product-item {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 15px 0;
+        }
+
+        .product-item:last-child {
+            border-bottom: none;
+        }
+
+        .total {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+
+        .footer {
             text-align: center;
             color: #6b7280;
             font-size: 14px;
-        }
-
-        .email-footer a {
-            color: #4f46e5;
-            text-decoration: none;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
         }
     </style>
 </head>
 
 <body>
-    <div class="email-container">
-        <div class="email-header">
-            <h1>📦 Order Status Updated</h1>
-            <p>{{ $transaction->order_number }}</p>
+    <div class="header">
+        <h1>📦 Order Status Updated</h1>
+        <p>Your order has been updated</p>
+    </div>
+
+    <div class="content">
+        <p>Hi <strong>{{ $transaction->user->name }}</strong>,</p>
+
+        <p>Your order <strong>#{{ $transaction->order_number }}</strong> status has been updated:</p>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <span class="status-badge status-{{ $oldStatus }}">{{ ucfirst($oldStatus) }}</span>
+            <span style="font-size: 24px;">→</span>
+            <span class="status-badge status-{{ $transaction->status }}">{{ ucfirst($transaction->status) }}</span>
         </div>
 
-        <div class="email-body">
-            <p style="font-size: 16px; color: #374151; line-height: 1.6;">
-                Hello <strong>{{ $transaction->user->name }}</strong>,
-            </p>
+        <div class="order-details">
+            <h3>Order Details</h3>
 
-            @php
-                $statusMessages = [
-                    'paid' => 'Your payment has been confirmed!  We are preparing your order.',
-                    'processing' => 'Your order is now being processed and packed.',
-                    'shipped' => 'Great news! Your order has been shipped and is on its way to you.',
-                    'completed' => 'Your order has been delivered!  We hope you enjoy your purchase.',
-                    'cancelled' => 'Your order has been cancelled.If you did not request this, please contact us.',
-                ];
-                $message = $statusMessages[$transaction->status] ?? 'Your order status has been updated.';
-            @endphp
+            <table style="width: 100%; margin-bottom: 20px;">
+                <tr>
+                    <td><strong>Order Number:</strong></td>
+                    <td>{{ $transaction->order_number }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Order Date:</strong></td>
+                    <td>{{ $transaction->created_at->format('d M Y, H:i') }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Payment Method:</strong></td>
+                    <td>{{ ucfirst(str_replace('_', ' ', $transaction->payment_method)) }}</td>
+                </tr>
+            </table>
 
-            <p style="font-size: 18px; color: #111827; font-weight: 600; line-height: 1.6;">
-                {{ $message }}
-            </p>
-
-            <div class="status-change-box">
-                <p style="margin: 0 0 15px 0; color: #6b7280; font-weight: 600;">Status Update:</p>
-                <div>
-                    <span class="status-badge status-{{ $oldStatus }}">{{ ucfirst($oldStatus) }}</span>
-                    <span class="arrow">→</span>
-                    <span
-                        class="status-badge status-{{ $transaction->status }}">{{ ucfirst($transaction->status) }}</span>
+            <h4>Items:</h4>
+            @foreach ($transaction->items as $item)
+                <div class="product-item">
+                    <strong>{{ $item->product->name }}</strong><br>
+                    <small>{{ $item->quantity }} x Rp {{ number_format($item->price, 0, ',', '.') }}</small>
+                    <div style="text-align: right; font-weight: bold;">
+                        Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                    </div>
                 </div>
+            @endforeach
+
+            <div class="total">
+                Total: Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}
             </div>
+        </div>
 
-            @if ($transaction->status === 'shipped' && $transaction->shipped_at)
-                <div style="background: #e0e7ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <p style="margin: 0; color: #3730a3; text-align: center;">
-                        🚚 Shipped on: <strong>{{ $transaction->shipped_at->format('d M Y, H:i') }}</strong>
-                    </p>
-                </div>
-            @endif
-
-            @if ($transaction->status === 'completed' && $transaction->completed_at)
-                <div style="background: #d1fae5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <p style="margin: 0; color: #065f46; text-align: center;">
-                        ✅ Completed on: <strong>{{ $transaction->completed_at->format('d M Y, H:i') }}</strong>
-                    </p>
-                </div>
-            @endif
-
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="{{ url('/customer') }}" class="button">
-                    View Order Details
-                </a>
+        @if ($transaction->shipping_address)
+            <div class="order-details">
+                <h4>Shipping Address:</h4>
+                <p>{{ $transaction->shipping_address }}</p>
+                @if ($transaction->phone)
+                    <p><strong>Phone:</strong> {{ $transaction->phone }}</p>
+                @endif
             </div>
+        @endif
 
-            <p
-                style="font-size: 14px; color: #6b7280; line-height: 1.6; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                Thank you for your business!
+        <div style="text-align: center;">
+            <a href="{{ url('/admin/transactions/' . $transaction->id) }}" class="button">
+                View Order Details
+            </a>
+        </div>
+
+        @if ($transaction->status === 'completed')
+            <p style="color: #059669; font-weight: bold;">
+                ✅ Thank you for your purchase! We hope you enjoy your products.
             </p>
-        </div>
+        @elseif($transaction->status === 'shipped')
+            <p style="color: #0284c7; font-weight: bold;">
+                🚚 Your order is on the way! You should receive it soon.
+            </p>
+        @elseif($transaction->status === 'cancelled')
+            <p style="color: #dc2626; font-weight: bold;">
+                ❌ Your order has been cancelled. If you have any questions, please contact us.
+            </p>
+        @endif
+    </div>
 
-        <div class="email-footer">
-            <p>&copy; {{ date('Y') }} {{ config('app.name') }}.All rights reserved.</p>
-        </div>
+    <div class="footer">
+        <p>This is an automated email. Please do not reply.</p>
+        <p>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
     </div>
 </body>
 

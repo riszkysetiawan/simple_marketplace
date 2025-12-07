@@ -13,7 +13,7 @@ class UserSeeder extends Seeder
         // 1.Super Admin User
         $superAdmin = User::create([
             'name' => 'Super Admin',
-            'email' => 'superadmin@marketplace.com',
+            'email' => 'rizkysetiawann22@gmail.com',
             'password' => Hash::make('password'),
             'email_verified_at' => now(),
             'phone' => '081234567890',

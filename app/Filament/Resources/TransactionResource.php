@@ -220,6 +220,54 @@ class TransactionResource extends BaseResource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+
+                // ✅ Quick Status Update
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('markAsPaid')
+                        ->label('Mark as Paid')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function (Transaction $record) {
+                            $record->update(['status' => 'paid', 'paid_at' => now()]);
+                        })
+                        ->visible(fn(Transaction $record) => $record->status === 'pending'),
+
+                    Tables\Actions\Action::make('markAsProcessing')
+                        ->label('Mark as Processing')
+                        ->icon('heroicon-o-cog')
+                        ->color('primary')
+                        ->requiresConfirmation()
+                        ->action(fn(Transaction $record) => $record->update(['status' => 'processing']))
+                        ->visible(fn(Transaction $record) => $record->status === 'paid'),
+
+                    Tables\Actions\Action::make('markAsShipped')
+                        ->label('Mark as Shipped')
+                        ->icon('heroicon-o-truck')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->action(fn(Transaction $record) => $record->update(['status' => 'shipped', 'shipped_at' => now()]))
+                        ->visible(fn(Transaction $record) => $record->status === 'processing'),
+
+                    Tables\Actions\Action::make('markAsCompleted')
+                        ->label('Mark as Completed')
+                        ->icon('heroicon-o-check-badge')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(fn(Transaction $record) => $record->update(['status' => 'completed', 'completed_at' => now()]))
+                        ->visible(fn(Transaction $record) => $record->status === 'shipped'),
+
+                    Tables\Actions\Action::make('cancel')
+                        ->label('Cancel Order')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->action(fn(Transaction $record) => $record->update(['status' => 'cancelled']))
+                        ->visible(fn(Transaction $record) => !in_array($record->status, ['completed', 'cancelled'])),
+                ])
+                    ->label('Update Status')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->button(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
