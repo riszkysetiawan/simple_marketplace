@@ -15,7 +15,6 @@ class TransactionObserver
      */
     public function created(Transaction $transaction): void
     {
-        // ✅ Kirim notifikasi ke semua super admin saat order baru dibuat
         $superAdmins = User::whereHas('roles', function ($query) {
             $query->where('name', 'super_admin');
         })->get();

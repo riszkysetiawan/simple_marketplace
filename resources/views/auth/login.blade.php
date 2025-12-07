@@ -271,7 +271,7 @@
                         </div>
 
                         <!-- Facebook Login Button -->
-                        <div class="col-6">
+                        {{-- <div class="col-6">
                             <button type="button" class="btn btn-social btn-facebook w-100" id="facebookLoginBtn">
                                 <svg width="20" height="20" fill="#1877F2" viewBox="0 0 24 24">
                                     <path
@@ -279,7 +279,7 @@
                                 </svg>
                                 <span>Facebook</span>
                             </button>
-                        </div>
+                        </div> --}}
                     </div>
                 </div>
             </div>

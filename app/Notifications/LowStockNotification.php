@@ -4,12 +4,11 @@ namespace App\Notifications;
 
 use App\Models\Product;
 use Illuminate\Bus\Queueable;
-// ❌ HAPUS BARIS INI
-// use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class LowStockNotification extends Notification // ✅ Hapus implements ShouldQueue
+class LowStockNotification extends Notification
 {
     use Queueable;
 

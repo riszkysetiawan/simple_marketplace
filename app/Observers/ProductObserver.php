@@ -24,7 +24,6 @@ class ProductObserver
 
     private function sendLowStockNotification(Product $product)
     {
-        // Cara 1: Menggunakan whereHas
         $superAdmins = User::whereHas('roles', function ($query) {
             $query->where('name', 'super_admin');
         })->get();
