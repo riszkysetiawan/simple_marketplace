@@ -50,12 +50,11 @@ Route::prefix('api')->middleware('api')->group(function () {
 // Web Routes - Social Login
 
 // Social Login Routes
-Route::prefix('auth')->name('auth.')->group(function () {
-    Route::get('/google', [SocialLoginController::class, 'redirectToGoogle'])->name('google');
-    Route::get('/google/callback', [SocialLoginController::class, 'handleGoogleCallback'])->name('google.callback');
-    Route::get('/facebook', [SocialLoginController::class, 'redirectToFacebook'])->name('facebook');
-    Route::get('/facebook/callback', [SocialLoginController::class, 'handleFacebookCallback'])->name('facebook.callback');
-});
+Route::get('/auth/google', [SocialLoginController::class, 'redirectToGoogle'])->name('google.redirect');
+Route::get('/auth/google/callback', [SocialLoginController::class, 'handleGoogleCallback'])->name('google.callback');
+Route::get('/auth/facebook', [SocialLoginController::class, 'redirectToFacebook'])->name('facebook.redirect');
+Route::get('/auth/facebook/callback', [SocialLoginController::class, 'handleFacebookCallback'])->name('facebook.callback');
+
 // ========================================
 // DASHBOARD ROUTES
 // ========================================

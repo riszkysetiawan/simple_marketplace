@@ -18,7 +18,7 @@
     <script async defer crossorigin="anonymous"
         src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0&appId={{ env('FACEBOOK_CLIENT_ID') }}">
     </script>
-
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         :root {
             --primary-color: #4f46e5;
@@ -607,14 +607,6 @@
                 client_id: '{{ env('GOOGLE_CLIENT_ID') }}',
                 callback: onGoogleSignIn
             });
-
-            google.accounts.id.renderButton(
-                document.getElementById('googleLoginBtn'), {
-                    theme: 'outline',
-                    size: 'large',
-                    text: 'signin_with'
-                }
-            );
         }
 
         // ✅ Facebook SDK initialization

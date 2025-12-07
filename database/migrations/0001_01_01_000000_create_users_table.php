@@ -12,9 +12,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            // $table->unsignedBigInteger('id_roles')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
+            $table->string('provider')->nullable();
+            $table->string('provider_id')->nullable();
             $table->string('google_id')->nullable()->unique();
             $table->string('facebook_id')->nullable()->unique();
             $table->string('avatar')->nullable();
@@ -26,6 +27,7 @@ return new class extends Migration
             $table->index('email');
             $table->index('google_id');
             $table->index('facebook_id');
+            $table->index('provider_id');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

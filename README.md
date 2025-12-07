@@ -74,3 +74,11 @@ A full-featured marketplace application built with Laravel 12, featuring product
 ```bash
 git clone https://github.com/yourusername/simple-marketplace.git
 cd simple-marketplace
+composer install
+composer update
+cp .env.example .env
+php artisan key:generate
+php artisan migrate:fresh --seed
+npm install
+npm run dev
+php artisan serve

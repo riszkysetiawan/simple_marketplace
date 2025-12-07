@@ -19,9 +19,10 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register']);
         Route::post('/login', [AuthController::class, 'login']);
+        Route::post('/google/login', [AuthController::class, 'googleLogin']);
+        Route::post('/facebook/login', [AuthController::class, 'facebookLogin']);
     });
 
-    // Public product routes
     Route::prefix('products')->group(function () {
         Route::get('/', [ProductController::class, 'index']);
         Route::get('/{id}', [ProductController::class, 'show']);
@@ -29,11 +30,14 @@ Route::prefix('v1')->group(function () {
 });
 
 // Protected routes (requires authentication)
-Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+Route::prefix('v1')->middleware('auth:api')->group(function () {
 
-    // Auth user info
-    Route::get('/auth/me', [AuthController::class, 'me']);
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::prefix('auth')->group(function () {
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/logout', [AuthController::class, 'logout']);
+    });
+    Route::get('/auth/sso', [AuthController::class, 'ssoLogin']);
+    Route::post('/auth/sso/callback', [AuthController::class, 'ssoCallback']);
 
     // Transactions (accessible by all authenticated users)
     Route::prefix('transactions')->group(function () {

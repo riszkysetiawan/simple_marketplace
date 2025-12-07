@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Laravel\Passport\Passport;
-use App\Models\User;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -14,13 +13,10 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        if (!$this->app->routesAreCached()) {
-            Passport::routes();
-        }
+        // Register Passport routes
+        Passport::routes();
 
-        // ✅ PENTING: Set user model SEBELUM token settings
-        Passport::useUserModel(User::class);
-
+        // Token expiration
         Passport::tokensExpireIn(now()->addDays(15));
         Passport::refreshTokensExpireIn(now()->addDays(30));
         Passport::personalAccessTokensExpireIn(now()->addMonths(6));
